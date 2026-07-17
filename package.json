@@ -1,0 +1,26 @@
+{
+  "name": "nos-craft",
+  "version": "1.0.0",
+  "description": "NÓS-Craft — o primeiro Ramo de guerra do NÓS: MMO-feel clássico no navegador, 100% GitHub.",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test test/logic.test.mjs",
+    "gen-world": "node scripts/gen-world-json.mjs",
+    "olhar": "node scripts/screenshot.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brigsd/nos-craft.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/brigsd/nos-craft/issues"
+  },
+  "homepage": "https://github.com/brigsd/nos-craft#readme",
+  "dependencies": {
+    "three": "^0.185.1"
+  },
+  "type": "module"
+}
