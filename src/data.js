@@ -25,8 +25,8 @@ export const ABILITIES = {
 
 // tipos de mob: stats base por nível efetivo
 export const MOB_TYPES = {
-  lobo:     { name: 'Lobo do Vale',     level: 1, hp: 34,  attack: 4,  attackSpeed: 1.8, moveSpeed: 5.4, aggroR: 7,  xp: 30,  kind: 'quad', tint: 0x8a8f96, scale: 1.0 },
-  loboUiv:  { name: 'Lobo Uivador',     level: 2, hp: 46,  attack: 6,  attackSpeed: 1.8, moveSpeed: 5.6, aggroR: 8,  xp: 42,  kind: 'quad', tint: 0x6b7178, scale: 1.12 },
+  lobo:     { name: 'Lobo do Vale',     level: 1, hp: 34,  attack: 4,  attackSpeed: 1.8, moveSpeed: 5.4, aggroR: 7,  xp: 30,  kind: 'quad', tint: 0x9a958a, scale: 1.2 },
+  loboUiv:  { name: 'Lobo Uivador',     level: 2, hp: 46,  attack: 6,  attackSpeed: 1.8, moveSpeed: 5.6, aggroR: 8,  xp: 42,  kind: 'quad', tint: 0x77726a, scale: 1.32 },
   javali:   { name: 'Javali Fuçador',   level: 2, hp: 52,  attack: 5,  attackSpeed: 2.1, moveSpeed: 5.2, aggroR: 0,  xp: 40,  kind: 'quad', tint: 0x7a5b43, scale: 1.05, snout: true },
   batedor:  { name: 'Gnoll Batedor',    level: 3, hp: 62,  attack: 8,  attackSpeed: 1.9, moveSpeed: 5.8, aggroR: 10, xp: 58,  kind: 'biped', tint: 0xa08a56, scale: 0.95 },
   bruto:    { name: 'Gnoll Bruto',      level: 4, hp: 88,  attack: 11, attackSpeed: 2.2, moveSpeed: 5.4, aggroR: 10, xp: 78,  kind: 'biped', tint: 0x8a6d46, scale: 1.12 },
