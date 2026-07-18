@@ -16,7 +16,7 @@ y=0) — quem posiciona no mundo é `props.js`.
 | Ferramenta | Arquivo | Pra quê |
 |---|---|---|
 | **Estúdio** | `studio.html` / `src/studio.js` | um objeto por vez, 3 rigs de luz, turntable, wireframe, figura-referência 1.80m |
-| **Crítico + folhas de contato** | `scripts/forja.mjs` | `audit` (budget/chão/escala/drawcalls/peça-órfã), `shot` (4 ângulos × 2 luzes), `diff` (antes/depois), `all` |
+| **Crítico + folhas de contato** | `scripts/forja.mjs` | `audit` (budget/chão/escala/drawcalls/anatomia-peça-órfã), `shot` (4 ângulos × 2 luzes), `diff` (antes/depois), `all` |
 | **Cartógrafo** | `cartografo.html` / `src/cartografo.js` | mapa de cima 100% Canvas2D — roda a MESMA geração do jogo (terrain+props) numa Scene nunca renderizada, plota POIs/estrada/rio/colisores/densidade |
 
 ```bash
@@ -56,6 +56,17 @@ interativo com toggles de camada e leitura de altura/coordenada no cursor.
 4. **Loft nos membros do bípede** — braço/perna deixaram de ter quina reta
    no cotovelo/joelho; ombreira esférica (bola de praia flutuando) virou
    cunha achatada cobrindo a junta.
+5. **Tronco em loft nas árvores** — S-bend + afunilamento, custo zero (620
+   instâncias reusam a mesma geometria). Achado e não corrigido ainda: leve
+   gargalo onde a copa (blobs de icosaedro) encontra o topo do tronco.
+6. **Checador de anatomia** — o ideador achou a olho um vão vazio entre a
+   barriga e a cabeça do boneco; o crítico não pegava porque
+   `Box3.setFromObject()` soma a bbox de todo descendente num pai, então
+   uma peça-filha flutuando sempre "tocava" o próprio pai. Trocado por bbox
+   da geometria própria de cada mesh (nível `error`, lista todos os
+   achados). Isso desenterrou mais dois vãos reais: balde do poço
+   flutuando sem corda, e anel de pedras da fogueira longe demais das
+   toras. Ambos corrigidos e reauditados.
 
 Cada ronda: **audite, olhe a folha de contato de verdade, aponte o defeito
 concreto antes de aprovar, corrija, re-audite.** Não se dê por satisfeito.
