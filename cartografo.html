@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>NÓS-Craft · O Cartógrafo</title>
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body { background: #1a1c1e; font-family: Georgia, serif; color: #e8dcc0; overflow: hidden; }
+  #wrap { display: flex; height: 100vh; }
+  #mapCanvas { background: #000; cursor: crosshair; }
+  #side { width: 300px; padding: 10px; background: #14100e; overflow-y: auto; font-size: 13px; border-left: 2px solid #6b5a34; }
+  #side h2 { color: #f0c95c; font-size: 15px; margin-bottom: 6px; }
+  #side label { display: block; margin: 8px 0 2px; color: #cfc49c; }
+  #readout { white-space: pre; font-family: Consolas, monospace; font-size: 12px; background: #221a10; padding: 8px; border-radius: 4px; line-height: 1.5; }
+  .toggle { display: flex; align-items: center; gap: 6px; margin: 4px 0; cursor: pointer; }
+  .legend { display: flex; align-items: center; gap: 6px; font-size: 12px; margin: 2px 0; }
+  .sw { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="mapCanvas" width="900" height="900"></canvas>
+  <div id="side">
+    <h2>◈ O Cartógrafo</h2>
+    <div id="readout">carregando…</div>
+    <label>Camadas</label>
+    <div id="toggles"></div>
+    <label>Legenda</label>
+    <div id="legend"></div>
+  </div>
+</div>
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+<script type="module" src="src/cartografo.js"></script>
+</body>
+</html>
