@@ -42,10 +42,13 @@ export function makeBiped({ tint = 0x9a7a5a, skin = 0xd8b090, gnoll = false, sca
   const pelvis = new THREE.Group(); pelvis.position.y = 0.95; g.add(pelvis); parts.pelvis = pelvis;
   const torso = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.72, 0.36), cloth);
   torso.position.y = 0.42; pelvis.add(torso); parts.torso = torso;
-  // ombreiras (o exagero clássico)
+  /* ombreiras: achatadas (Forja ronda 4 — esfera 0.17 virou bola de praia
+     flutuando quando o braço emagreceu pro loft; agora é uma cunha que
+     cobre a JUNTA ombro->braço, não um adorno solto) */
   for (const s of [-1, 1]) {
-    const sh = new THREE.Mesh(new THREE.SphereGeometry(0.17, 6, 5), M(0x6a5a48));
-    sh.position.set(s * 0.38, 0.72, 0); torso.add(sh);
+    const sh = new THREE.Mesh(new THREE.SphereGeometry(0.135, 7, 5), M(0x6a5a48));
+    sh.scale.set(1.15, 0.8, 1.05);
+    sh.position.set(s * 0.4, 0.58, 0.01); torso.add(sh);
   }
   const head = new THREE.Group(); head.position.y = 0.98; torso.add(head); parts.head = head;
   const skull = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.42, 0.4), flesh);
@@ -62,16 +65,25 @@ export function makeBiped({ tint = 0x9a7a5a, skin = 0xd8b090, gnoll = false, sca
     const h = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.16, 0.44), M(hair));
     h.position.y = 0.24; skull.add(h);
   }
-  // braços
+  // braços: loft contínuo braço->antebraço (Forja ronda 4 — era caixa+caixa
+  // com uma quina reta no cotovelo; agora afina como músculo de verdade)
   for (const s of [-1, 1]) {
     const arm = new THREE.Group();
     arm.position.set(s * 0.42, 0.6, 0);
     torso.add(arm);
-    const upper = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.42, 0.16), cloth);
-    upper.position.y = -0.21; arm.add(upper);
-    const fore = new THREE.Group(); fore.position.y = -0.44; arm.add(fore);
-    const foreM = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.4, 0.14), flesh);
-    foreM.position.y = -0.2; fore.add(foreM);
+    const upperGeo = loft([
+      { p: [0, 0.02, 0], rx: 0.105 },
+      { p: [0, -0.2, 0.01], rx: 0.085 },
+      { p: [0, -0.4, 0], rx: 0.07 },
+    ], { seg: 6, color: tint });
+    arm.add(new THREE.Mesh(upperGeo, VC()));
+    const fore = new THREE.Group(); fore.position.y = -0.42; arm.add(fore);
+    const foreGeo = loft([
+      { p: [0, 0.02, 0], rx: 0.068 },
+      { p: [0, -0.18, 0], rx: 0.058 },
+      { p: [0, -0.38, 0.01], rx: 0.045 },
+    ], { seg: 6, color: skin });
+    fore.add(new THREE.Mesh(foreGeo, VC()));
     parts[s === 1 ? 'armR' : 'armL'] = arm;
     parts[s === 1 ? 'foreR' : 'foreL'] = fore;
   }
@@ -93,16 +105,24 @@ export function makeBiped({ tint = 0x9a7a5a, skin = 0xd8b090, gnoll = false, sca
     parts.foreR.add(w);
     parts.weapon = w;
   }
-  // pernas
+  // pernas: mesmo loft contínuo (coxa->canela) das mãos/braços
   for (const s of [-1, 1]) {
     const leg = new THREE.Group();
-    leg.position.set(s * 0.17, 0.06, 0);
+    leg.position.set(s * 0.17, 0.08, 0);
     pelvis.add(leg);
-    const thigh = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.46, 0.22), M(0x4a3c30));
-    thigh.position.y = -0.23; leg.add(thigh);
-    const shin = new THREE.Group(); shin.position.y = -0.48; leg.add(shin);
-    const shinM = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.44, 0.2), M(0x3a3028));
-    shinM.position.y = -0.22; shin.add(shinM);
+    const thighGeo = loft([
+      { p: [0, 0.02, 0], rx: 0.13, rz: 0.14 },
+      { p: [0, -0.22, 0.015], rx: 0.105 },
+      { p: [0, -0.44, 0], rx: 0.085 },
+    ], { seg: 6, color: 0x4a3c30 });
+    leg.add(new THREE.Mesh(thighGeo, VC()));
+    const shin = new THREE.Group(); shin.position.y = -0.46; leg.add(shin);
+    const shinGeo = loft([
+      { p: [0, 0.02, 0], rx: 0.082 },
+      { p: [0, -0.2, 0], rx: 0.062 },
+      { p: [0, -0.4, 0.01], rx: 0.05 },
+    ], { seg: 6, color: 0x3a3028 });
+    shin.add(new THREE.Mesh(shinGeo, VC()));
     const foot = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 0.32), M(0x2c241e));
     foot.position.set(0, -0.46, 0.06); shin.add(foot);
     parts[s === 1 ? 'legR' : 'legL'] = leg;
