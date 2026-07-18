@@ -48,8 +48,18 @@ export function makeBiped({ tint = 0x9a7a5a, skin = 0xd8b090, gnoll = false, sca
   for (const s of [-1, 1]) {
     const sh = new THREE.Mesh(new THREE.SphereGeometry(0.135, 7, 5), M(0x6a5a48));
     sh.scale.set(1.15, 0.8, 1.05);
-    sh.position.set(s * 0.4, 0.58, 0.01); torso.add(sh);
+    sh.position.set(s * 0.4, 0.4, 0.01); torso.add(sh);
   }
+  /* pescoço: sem isso a cabeça ficava a 0.98 flutuando sobre o topo do
+     tronco (0.36) — um vão de 0.62 sem nenhuma malha ali (achado a olho,
+     Forja ronda 6; o crítico não pegava pq setFromObject soma os
+     descendentes na bbox do pai, então cabeça "dentro" do tronco sempre
+     "tocava" nele mesmo boiando) */
+  const neckGeo = loft([
+    { p: [0, 0.34, 0.02], rx: 0.15, rz: 0.13 },
+    { p: [0, 0.8, 0.05], rx: 0.11, rz: 0.1 },
+  ], { seg: 6, color: skin });
+  torso.add(new THREE.Mesh(neckGeo, VC()));
   const head = new THREE.Group(); head.position.y = 0.98; torso.add(head); parts.head = head;
   const skull = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.42, 0.4), flesh);
   head.add(skull);
@@ -69,7 +79,7 @@ export function makeBiped({ tint = 0x9a7a5a, skin = 0xd8b090, gnoll = false, sca
   // com uma quina reta no cotovelo; agora afina como músculo de verdade)
   for (const s of [-1, 1]) {
     const arm = new THREE.Group();
-    arm.position.set(s * 0.42, 0.6, 0);
+    arm.position.set(s * 0.42, 0.4, 0);
     torso.add(arm);
     const upperGeo = loft([
       { p: [0, 0.02, 0], rx: 0.105 },

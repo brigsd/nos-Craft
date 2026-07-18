@@ -146,6 +146,12 @@ export function makeWell() {
   }
   const bucket = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.13, 0.22, 7), M(0x6b543c));
   bucket.position.y = 1.15; g.add(bucket);
+  /* balde flutuava sozinho no meio do poço, sem nada o segurando (achado
+     do checador de anatomia, Forja ronda 6) — trave + corda até a roldana */
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.9, 6), M(0x5a4330));
+  beam.rotation.z = Math.PI / 2; beam.position.y = 1.75; g.add(beam);
+  const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.55, 5), M(0xc9b98a));
+  rope.position.y = 1.47; g.add(rope);
   return g;
 }
 export function makeShrine() {
@@ -188,11 +194,14 @@ export function makeCampfire() {
     log.position.y = 0.18;
     g.add(log);
   }
+  /* anel a 0.85 deixava as pedras soltas no ar, sem tocar as toras nem
+     entre si (achado do checador de anatomia, Forja ronda 6) — anel mais
+     fechado alcança as pontas das toras em qualquer ângulo */
   const stonering = new THREE.Group();
   for (let i = 0; i < 7; i++) {
     const a = (i / 7) * Math.PI * 2;
-    const s = new THREE.Mesh(new THREE.DodecahedronGeometry(0.18, 0), M(0x7a766e));
-    s.position.set(Math.cos(a) * 0.85, 0.12, Math.sin(a) * 0.85);
+    const s = new THREE.Mesh(new THREE.DodecahedronGeometry(0.2, 0), M(0x7a766e));
+    s.position.set(Math.cos(a) * 0.6, 0.12, Math.sin(a) * 0.6);
     stonering.add(s);
   }
   g.add(stonering);

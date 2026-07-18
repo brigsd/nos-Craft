@@ -96,19 +96,27 @@ export function audit(id) {
   if (st.bbox.min[1] > 0.12) f.push({ level: 'error', check: 'chao', msg: `flutuando: base em y=${st.bbox.min[1].toFixed(2)} (deveria tocar y≈0)` });
   if (st.bbox.min[1] < -0.6) f.push({ level: 'warn', check: 'chao', msg: `enterrado: base em y=${st.bbox.min[1].toFixed(2)}` });
   if (H < entry.h[0] || H > entry.h[1]) f.push({ level: 'error', check: 'escala', msg: `altura ${H.toFixed(2)}m fora da faixa [${entry.h[0]}, ${entry.h[1]}] (ref humano 1.80m)` });
-  // peça ÓRFÃ: mesh cuja bbox não encosta em nenhuma outra (arma solta, telhado voando)
+  // peça ÓRFÃ / anatomia: bbox da geometria PRÓPRIA de cada mesh (não a do
+  // Object3D.setFromObject, que soma os descendentes — por isso uma cabeça
+  // flutuando dentro do tronco-pai sempre "tocava" nele, mesmo com um vão
+  // vazio de verdade entre a malha do pescoço e a da cabeça; achado a olho,
+  // Forja ronda 6, boneco com vão barriga->cabeça que este check deixou passar)
   {
     const boxes = [];
     obj.updateMatrixWorld(true);
-    obj.traverse((o) => { if (o.isMesh) boxes.push(new THREE.Box3().setFromObject(o)); });
+    obj.traverse((o) => {
+      if (!o.isMesh) return;
+      if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+      boxes.push({ node: o, box: o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld) });
+    });
     for (let i = 0; i < boxes.length; i++) {
       let touches = boxes.length === 1;
       for (let j = 0; j < boxes.length && !touches; j++) {
         if (i === j) continue;
-        const a = boxes[i].clone().expandByScalar(0.05);
-        if (a.intersectsBox(boxes[j])) touches = true;
+        const a = boxes[i].box.clone().expandByScalar(0.05);
+        if (a.intersectsBox(boxes[j].box)) touches = true;
       }
-      if (!touches) { f.push({ level: 'warn', check: 'orfa', msg: `peça ${i} não encosta em nada (flutuando a ${boxes[i].min.y.toFixed(2)}m?)` }); break; }
+      if (!touches) { f.push({ level: 'error', check: 'anatomia', msg: `peça "${boxes[i].node.name || boxes[i].node.parent?.name || i}" não encosta em nada (vão vazio? base a ${boxes[i].box.min.y.toFixed(2)}m)` }); }
     }
   }
   // simetria de bbox no chão (objeto muito descentrado engana o posicionador)
