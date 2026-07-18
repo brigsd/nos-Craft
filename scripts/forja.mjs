@@ -15,6 +15,7 @@ const OUT = join(ROOT, 'qa', 'out');
 mkdirSync(OUT, { recursive: true });
 
 const [cmd = 'all', ...idsArg] = process.argv.slice(2);
+// diff: compõe baseline (qa/baseline) sobre o atual (qa/out) num só PNG
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json' };
 const server = createServer((req, res) => {
@@ -53,6 +54,30 @@ for (const id of ids) {
     const file = join(OUT, `forja-${id}.png`);
     writeFileSync(file, Buffer.from(dataUrl.split(',')[1], 'base64'));
     if (cmd === 'shot') console.log(`foto ${file}`);
+  }
+}
+if (cmd === 'diff') {
+  for (const id of ids) {
+    const basePng = join(ROOT, 'qa', 'baseline', `forja-${id}.png`);
+    const curPng = join(OUT, `forja-${id}.png`);
+    if (!existsSync(basePng) || !existsSync(curPng)) { console.log(`diff ${id}: falta baseline ou atual`); continue; }
+    const dataUrl = await page.evaluate(async ([a, b, label]) => {
+      const load = (src) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = src; });
+      const [ia, ib] = await Promise.all([load(a), load(b)]);
+      const c = document.createElement('canvas');
+      c.width = Math.max(ia.width, ib.width); c.height = ia.height + ib.height + 30;
+      const g = c.getContext('2d');
+      g.fillStyle = '#111'; g.fillRect(0, 0, c.width, c.height);
+      g.drawImage(ia, 0, 22);
+      g.drawImage(ib, 0, ia.height + 30);
+      g.fillStyle = '#f0c95c'; g.font = '18px Georgia';
+      g.fillText(`${label} — ANTES (baseline)`, 8, 16);
+      g.fillText(`${label} — DEPOIS (atual)`, 8, ia.height + 26);
+      return c.toDataURL('image/png');
+    }, [`/qa/baseline/forja-${id}.png`, `/qa/out/forja-${id}.png`, id]);
+    const f = join(OUT, `forja-${id}-diff.png`);
+    writeFileSync(f, Buffer.from(dataUrl.split(',')[1], 'base64'));
+    console.log(`diff ${f}`);
   }
 }
 if (auditAll.length) writeFileSync(join(OUT, 'forja-audit.json'), JSON.stringify(auditAll, null, 2));

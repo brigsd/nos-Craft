@@ -41,12 +41,15 @@ scene.add(ref);
 const rigs = {};
 {
   const mk = (name, lights) => { const g = new THREE.Group(); lights.forEach((l) => g.add(l)); g.visible = false; scene.add(g); rigs[name] = g; };
-  const sun = new THREE.DirectionalLight(0xfff2d8, 2.6); sun.position.set(-6, 10, 5);
-  mk('dia', [sun, new THREE.HemisphereLight(0xbdd9ff, 0x5a6a44, 1.15)]);
+  /* Forja ronda 3: 2.6 direto estourava branco puro nas normais CONTÍNUAS
+     do loft (a caixa só tinha ~6 direções de normal; a malha orgânica tem
+     infinitas, então mais área pega o ângulo de brilho máximo) */
+  const sun = new THREE.DirectionalLight(0xfff2d8, 1.7); sun.position.set(-6, 10, 5);
+  mk('dia', [sun, new THREE.HemisphereLight(0xbdd9ff, 0x5a6a44, 1.0)]);
   const dusk = new THREE.DirectionalLight(0xffa050, 2.2); dusk.position.set(8, 3, -2);
   mk('tarde', [dusk, new THREE.HemisphereLight(0x6a70b8, 0x4a3a30, 0.8)]);
   const key = new THREE.DirectionalLight(0xffffff, 2.4); key.position.set(-5, 8, 6);
-  const fill = new THREE.DirectionalLight(0x88aaff, 0.7); fill.position.set(6, 3, -4);
+  const fill = new THREE.DirectionalLight(0xd8d2c8, 0.55); fill.position.set(6, 3, -4); // neutro-quente (o azul lavava a parede sombreada)
   const rim = new THREE.DirectionalLight(0xffe0a0, 1.4); rim.position.set(0, 5, -8);
   mk('estudio', [key, fill, rim, new THREE.AmbientLight(0x404850, 0.6)]);
 }
@@ -93,6 +96,21 @@ export function audit(id) {
   if (st.bbox.min[1] > 0.12) f.push({ level: 'error', check: 'chao', msg: `flutuando: base em y=${st.bbox.min[1].toFixed(2)} (deveria tocar y≈0)` });
   if (st.bbox.min[1] < -0.6) f.push({ level: 'warn', check: 'chao', msg: `enterrado: base em y=${st.bbox.min[1].toFixed(2)}` });
   if (H < entry.h[0] || H > entry.h[1]) f.push({ level: 'error', check: 'escala', msg: `altura ${H.toFixed(2)}m fora da faixa [${entry.h[0]}, ${entry.h[1]}] (ref humano 1.80m)` });
+  // peça ÓRFÃ: mesh cuja bbox não encosta em nenhuma outra (arma solta, telhado voando)
+  {
+    const boxes = [];
+    obj.updateMatrixWorld(true);
+    obj.traverse((o) => { if (o.isMesh) boxes.push(new THREE.Box3().setFromObject(o)); });
+    for (let i = 0; i < boxes.length; i++) {
+      let touches = boxes.length === 1;
+      for (let j = 0; j < boxes.length && !touches; j++) {
+        if (i === j) continue;
+        const a = boxes[i].clone().expandByScalar(0.05);
+        if (a.intersectsBox(boxes[j])) touches = true;
+      }
+      if (!touches) { f.push({ level: 'warn', check: 'orfa', msg: `peça ${i} não encosta em nada (flutuando a ${boxes[i].min.y.toFixed(2)}m?)` }); break; }
+    }
+  }
   // simetria de bbox no chão (objeto muito descentrado engana o posicionador)
   const cx = (st.bbox.max[0] + st.bbox.min[0]) / 2, cz = (st.bbox.max[2] + st.bbox.min[2]) / 2;
   if (Math.hypot(cx, cz) > Math.max(1, (st.bbox.max[0] - st.bbox.min[0])) * 0.4) {

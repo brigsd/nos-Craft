@@ -58,30 +58,69 @@ export function makeRock(seed = 1) {
 }
 
 // ---------- vila ----------
-export function makeHouse({ w = 5, d = 6, hW = 2.6, roofColor = 0x8a4a34 } = {}) {
+import { chamferBox, paintVerts, mat as vmat, texShingles, texWood, texMasonry, texMat } from './lib/geo.js';
+export function makeHouse({ w = 5, d = 6, hW = 2.6, roofColor = 0x8a4a34, shingleFam = 'telhaRubra' } = {}) {
   const g = new THREE.Group();
-  const wall = new THREE.Mesh(new THREE.BoxGeometry(w, hW, d), M(0xd8cfb4));
+  /* paredes: chanfro + reboco com AO de vértice (Forja ronda 2: parede
+     chapada lia como plástico) */
+  const wallGeo = chamferBox(w, hW, d, 0.05, 'reboco', 2);
+  const wall = new THREE.Mesh(wallGeo, vmat());
   wall.position.y = hW / 2; g.add(wall);
+  /* soco de cantaria na base — a casa "pesa" no chão */
+  const socle = new THREE.Mesh(new THREE.BoxGeometry(w + 0.16, 0.5, d + 0.16), texMat(texMasonry(3)));
+  socle.position.y = 0.25; g.add(socle);
+  /* enxaimel: prumos de canto + travessa + DIAGONAIS nas empenas */
   const beam = M(0x5a4330);
   for (const [bx, bz] of [[-w / 2, -d / 2], [w / 2, -d / 2], [-w / 2, d / 2], [w / 2, d / 2]]) {
-    const b = new THREE.Mesh(new THREE.BoxGeometry(0.3, hW, 0.3), beam);
+    const b = new THREE.Mesh(new THREE.BoxGeometry(0.28, hW, 0.28), beam);
     b.position.set(bx, hW / 2, bz); g.add(b);
   }
-  const trav = new THREE.Mesh(new THREE.BoxGeometry(w + 0.06, 0.26, d + 0.06), beam);
-  trav.position.y = hW - 0.6; g.add(trav);
-  /* telhado de DUAS ÁGUAS de verdade (prisma), não cone — v2 do estúdio:
-     o cone lia como chapéu de circo de certos ângulos */
-  const roofH = 1.9;
+  const trav = new THREE.Mesh(new THREE.BoxGeometry(w + 0.06, 0.24, d + 0.06), beam);
+  trav.position.y = hW - 0.55; g.add(trav);
+  for (const sz of [-1, 1]) for (const sx of [-1, 1]) {
+    const diag = new THREE.Mesh(new THREE.BoxGeometry(0.16, hW * 0.62, 0.16), beam);
+    diag.position.set(sx * w * 0.26, hW * 0.45, sz * (d / 2 + 0.02));
+    diag.rotation.z = sx * 0.5;
+    g.add(diag);
+  }
+  /* telhado: prisma de duas águas com TELHAS (material 0 = empenas em
+     tábuas; material 1 = escamas de telha) + beiral com sombra */
+  const roofH = Math.min(2.2, w * 0.42);
   const shape = new THREE.Shape();
-  shape.moveTo(-w / 2 - 0.5, 0); shape.lineTo(w / 2 + 0.5, 0); shape.lineTo(0, roofH); shape.closePath();
-  const roofGeo = new THREE.ExtrudeGeometry(shape, { depth: d + 1, bevelEnabled: false });
-  roofGeo.translate(0, hW, -(d + 1) / 2);
-  const roof = new THREE.Mesh(roofGeo, M(roofColor));
+  shape.moveTo(-w / 2 - 0.55, 0); shape.lineTo(w / 2 + 0.55, 0); shape.lineTo(0, roofH); shape.closePath();
+  const roofGeo = new THREE.ExtrudeGeometry(shape, { depth: d + 1.1, bevelEnabled: false });
+  roofGeo.translate(0, hW, -(d + 1.1) / 2);
+  const shin = texMat(texShingles(shingleFam, (w * 7) | 0));
+  const roof = new THREE.Mesh(roofGeo, [texMat(texWood(2, 6)), shin]);
   g.add(roof);
-  const door = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.7, 0.12), M(0x4a3626));
-  door.position.set(0, 0.85, d / 2 + 0.04); g.add(door);
-  const win = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.8, 0.1), M(0xf7dd90, { emissive: 0x6a5210 }));
-  win.position.set(w / 4, 1.5, d / 2 + 0.04); g.add(win);
+  const eave = new THREE.Mesh(new THREE.BoxGeometry(w + 1.06, 0.14, d + 1.06), M(0x2c241e));
+  eave.position.y = hW - 0.02; g.add(eave);
+  /* cumeeira */
+  const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.18, d + 1.14), M(0x3a2a20));
+  ridge.position.y = hW + roofH; g.add(ridge);
+  /* CHAMINÉ de cantaria (Forja ronda 2: casa sem chaminé lia genérica) */
+  const chim = new THREE.Mesh(new THREE.BoxGeometry(0.62, roofH + 1.1, 0.62), texMat(texMasonry(9)));
+  chim.position.set(w * 0.28, hW + (roofH + 1.1) / 2 - 0.2, -d * 0.18);
+  g.add(chim);
+  const chimCap = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.14, 0.78), M(0x4c4a48));
+  chimCap.position.set(w * 0.28, hW + roofH + 0.97, -d * 0.18);
+  g.add(chimCap);
+  /* porta com MOLDURA + tábuas + maçaneta */
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(1.24, 1.95, 0.18), beam);
+  frame.position.set(0, 0.97, d / 2 + 0.02); g.add(frame);
+  const door = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.75, 0.1), texMat(texWood(5, 3)));
+  door.position.set(0, 0.87, d / 2 + 0.1); g.add(door);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 5), M(0xc2a23a));
+  knob.position.set(0.32, 0.9, d / 2 + 0.17); g.add(knob);
+  /* janela com peitoril e travessas */
+  const winF = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.96, 0.14), beam);
+  winF.position.set(w / 4, 1.5, d / 2 + 0.02); g.add(winF);
+  const win = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.8, 0.08), M(0xf7dd90, { emissive: 0x6a5210 }));
+  win.position.set(w / 4, 1.5, d / 2 + 0.08); g.add(win);
+  const winBar = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.8, 0.1), beam);
+  winBar.position.set(w / 4, 1.5, d / 2 + 0.09); g.add(winBar);
+  const sill = new THREE.Mesh(new THREE.BoxGeometry(1.14, 0.1, 0.24), M(0x77593c));
+  sill.position.set(w / 4, 1.0, d / 2 + 0.06); g.add(sill);
   return g;
 }
 export function makeWell() {

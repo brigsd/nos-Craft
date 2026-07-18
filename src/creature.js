@@ -1,7 +1,10 @@
-// Criaturas low-poly com "ossos" hierárquicos e animação procedural.
+// Criaturas com esqueleto hierárquico + MALHA ORGÂNICA (loft por seções,
+// ver src/lib/loft.js) — a Forja ronda 3 aposentou o boneco de caixas
+// (Lego lia "brinquedo"; loft afina/curva como músculo de verdade).
 // biped: pelve→tronco→cabeça, braços com arma; quad: corpo+4 patas+cauda.
 // api: makeBiped/makeQuad -> { group, parts, anim(state, t, dt) }
 import * as THREE from 'three';
+import { loft, countershade } from './lib/loft.js';
 
 /* materiais memoizados (Forja ronda 1: 15 draw calls por boneco) */
 const _mc = new Map();
@@ -10,6 +13,7 @@ const M = (color, opts = {}) => {
   if (!_mc.has(key)) _mc.set(key, new THREE.MeshLambertMaterial({ color, ...opts }));
   return _mc.get(key);
 };
+const VC = (opts = {}) => { const key = 'vc' + JSON.stringify(opts); if (!_mc.has(key)) _mc.set(key, new THREE.MeshLambertMaterial({ vertexColors: true, ...opts })); return _mc.get(key); };
 /* fator humano: o esqueleto nasce ~2.66m; 0.68 assenta em 1.80m (Forja) */
 const HUMAN = 0.68;
 
@@ -17,6 +21,17 @@ function eye(x, y, z) {
   const e = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.12, 0.05), M(0x14100e));
   e.position.set(x, y, z);
   return e;
+}
+/** membro orgânico: espinha 3 pontos, raio afila na ponta (o "loft"
+    substitui a coxa-caixa+canela-caixa por UMA superfície contínua) */
+function organicLeg(len, r0, r1, taper = 0.55, seg = 7) {
+  const bend = len * 0.22;
+  const geo = loft([
+    { p: [0, 0, 0], rx: r0 },
+    { p: [0, -len * 0.55, bend * 0.3], rx: r1 },
+    { p: [0, -len, bend * 0.15], rx: r1 * taper },
+  ], { seg });
+  return geo;
 }
 
 export function makeBiped({ tint = 0x9a7a5a, skin = 0xd8b090, gnoll = false, scale = 1, weapon = 'sword', hair = null } = {}) {
@@ -97,36 +112,89 @@ export function makeBiped({ tint = 0x9a7a5a, skin = 0xd8b090, gnoll = false, sca
   return { group: g, parts, kind: 'biped' };
 }
 
-export function makeQuad({ tint = 0x8a8f96, snout = false, scale = 1 } = {}) {
+export function makeQuad({ tint = 0x8a8f96, snout = false, scale = 1, dark = 0x4a4640 } = {}) {
+  /* Forja ronda 3: o quadrúpede era 3 caixas + patas-caixa (lia como
+     brinquedo de plástico). Agora: TRONCO em loft afilando ventre/dorso
+     com contra-sombreado, patas em loft-cone real (coxa->casco), focinho
+     e cauda como espinhas próprias. Ganho: silhueta lê "animal" parado. */
   const g = new THREE.Group();
   const parts = {};
   const fur = M(tint);
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 1.1), fur);
-  body.position.y = 0.62; g.add(body); parts.body = body;
-  const head = new THREE.Group(); head.position.set(0, 0.72, 0.62); g.add(head); parts.head = head;
-  const skull = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.3, 0.38), fur); head.add(skull);
-  skull.add(eye(-0.09, 0.05, 0.2), eye(0.09, 0.05, 0.2));
-  const muzzle = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.16, 0.26), M(snout ? 0x5a4636 : tint));
-  muzzle.position.set(0, -0.04, 0.28); skull.add(muzzle);
-  if (snout) { // presas de javali
+
+  // TRONCO: barril orgânico — mais largo no meio, afunilando pro peito/anca
+  const torsoGeo = loft([
+    { p: [0, 0.62, -0.58], rx: 0.24, rz: 0.28 },
+    { p: [0, 0.66, -0.28], rx: 0.32, rz: 0.36 },
+    { p: [0, 0.66, 0.1], rx: 0.34, rz: 0.38 },
+    { p: [0, 0.62, 0.42], rx: 0.28, rz: 0.32 },
+    { p: [0, 0.56, 0.62], rx: 0.2, rz: 0.24 },
+  ], { seg: 8 });
+  /* contraste ventre/dorso mais SUAVE — a v1 ia até 0x2a2622 (quase preto)
+     e com a luz de estúdio lavava pra um branco->preto duro; agora é um
+     degradê dentro da MESMA família de cor do pelo (Forja ronda 3) */
+  const dk = new THREE.Color(tint).multiplyScalar(0.6).getHex();
+  countershade(torsoGeo, tint, dk);
+  const body = new THREE.Mesh(torsoGeo, VC());
+  g.add(body); parts.body = body;
+
+  // PESCOÇO+CABEÇA: continuação do loft do tronco até o crânio
+  const head = new THREE.Group(); head.position.set(0, 0.7, 0.6); g.add(head); parts.head = head;
+  const skullGeo = loft([
+    { p: [0, 0, -0.06], rx: 0.19, rz: 0.2 },
+    { p: [0, 0.02, 0.08], rx: 0.17, rz: 0.18 },
+    { p: [0, 0, 0.2], rx: snout ? 0.13 : 0.1, rz: 0.13 },
+  ], { seg: 7, color: tint });
+  const skull = new THREE.Mesh(skullGeo, VC()); head.add(skull);
+  skull.add(eye(-0.1, 0.05, 0.16), eye(0.1, 0.05, 0.16));
+  // focinho: espinha própria, afila até a trufa escura
+  const muzzleGeo = loft([
+    { p: [0, -0.01, 0.16], rx: 0.1, rz: 0.11 },
+    { p: [0, -0.03, 0.34], rx: snout ? 0.11 : 0.06, rz: snout ? 0.1 : 0.07 },
+    { p: [0, -0.03, snout ? 0.42 : 0.4], rx: snout ? 0.1 : 0.04, rz: snout ? 0.09 : 0.045 },
+  ], { seg: 6, color: snout ? 0x5a4636 : tint });
+  skull.add(new THREE.Mesh(muzzleGeo, VC()));
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 5), M(0x18120e));
+  nose.position.set(0, -0.03, snout ? 0.47 : 0.44); skull.add(nose);
+  if (snout) {
     for (const s of [-1, 1]) {
-      const tusk = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.16, 4), M(0xe8e2ce));
-      tusk.position.set(s * 0.09, -0.1, 0.38); tusk.rotation.x = -0.7; skull.add(tusk);
+      const tusk = new THREE.Mesh(new THREE.ConeGeometry(0.032, 0.16, 5), M(0xe8e2ce));
+      tusk.position.set(s * 0.09, -0.11, 0.4); tusk.rotation.x = -0.7; skull.add(tusk);
     }
   } else {
     for (const s of [-1, 1]) {
-      const ear = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.18, 4), fur);
-      ear.position.set(s * 0.12, 0.22, -0.02); skull.add(ear);
+      const ear = new THREE.Mesh(new THREE.ConeGeometry(0.065, 0.19, 4), fur);
+      ear.position.set(s * 0.12, 0.2, -0.02); ear.rotation.z = s * 0.15; skull.add(ear);
     }
   }
-  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.42), fur);
-  tail.position.set(0, 0.72, -0.66); tail.rotation.x = 0.5; g.add(tail); parts.tail = tail;
+
+  // CAUDA: espinha que farpa na ponta (a v2 era um cilindro reto)
+  const tailGeo = loft([
+    { p: [0, 0.68, -0.58], rx: 0.09 },
+    { p: [0, 0.6, -0.86], rx: 0.06 },
+    { p: [0, 0.48, -1.06], rx: 0.032 },
+  ], { seg: 6, color: tint });
+  const tail = new THREE.Mesh(tailGeo, VC());
+  g.add(tail); parts.tail = tail;
+
+  // PATAS: loft coxa->casco por perna — a v2 era 2 caixas empilhadas
+  const legDark = M(0x2c2824);
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
     const leg = new THREE.Group();
-    leg.position.set(sx * 0.2, 0.42, sz * 0.4);
+    /* topo da pata SOBE pra dentro do tronco (achado da Forja ronda 3: o
+       vão entre a barriga e a pata lia como boneco flutuando) */
+    leg.position.set(sx * 0.22, 0.64, sz * 0.42);
     g.add(leg);
-    const l = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.46, 0.15), fur);
-    l.position.y = -0.2; leg.add(l);
+    const legGeo = loft([
+      { p: [0, 0.08, 0], rx: 0.15, rz: 0.17 },
+      { p: [0, -0.08, 0], rx: 0.13, rz: 0.15 },
+      { p: [sx * 0.02, -0.28, sz * 0.03], rx: 0.095 },
+      { p: [sx * 0.01, -0.48, 0], rx: 0.06 },
+      { p: [0, -0.56, 0.02], rx: 0.055 },
+    ], { seg: 6, color: tint });
+    const legMesh = new THREE.Mesh(legGeo, VC());
+    leg.add(legMesh);
+    const hoof = new THREE.Mesh(new THREE.CylinderGeometry(0.058, 0.05, 0.09, 6), legDark);
+    hoof.position.y = -0.5; leg.add(hoof);
     parts[`leg${sx > 0 ? 'R' : 'L'}${sz > 0 ? 'F' : 'B'}`] = leg;
   }
   g.scale.setScalar(scale * 0.82);
