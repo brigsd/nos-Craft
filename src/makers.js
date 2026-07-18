@@ -15,11 +15,24 @@ export const M = (color, opts = {}) => {
 };
 
 // ---------- vegetação ----------
+import { loft } from './lib/loft.js';
+/* tronco em LOFT (Forja ronda 5): a v1 era um cone reto de 1 segmento —
+   inofensivo isolado, mas MULTIPLICADO por ~600 instâncias na floresta.
+   Um leve S e afinamento em 4 seções custam ZERO a mais por instância
+   (InstancedMesh reusa a mesma BufferGeometry) e mudam a leitura da
+   floresta inteira: tronco de árvore de verdade tem entalhe/afunilar,
+   não é um poste. */
+function trunkGeo(h, r0, r1, bend = 0.12, color = 0x6b4a30) {
+  return loft([
+    { p: [0, 0, 0], rx: r0 },
+    { p: [bend * h * 0.3, h * 0.4, bend * h * 0.15], rx: r0 * 0.78 },
+    { p: [bend * h * 0.5, h * 0.75, bend * h * 0.1], rx: r0 * 0.55 },
+    { p: [bend * h * 0.4, h, 0], rx: r1 },
+  ], { seg: 6, color, caps: true });
+}
 export function treeParts(kind) { // geometrias por parte (o plantio instancia)
   if (kind === 'pinheiro') {
-    const trunk = new THREE.CylinderGeometry(0.22, 0.34, 2.2, 6);
-    trunk.translate(0, 1.1, 0);
-    const parts = [{ geo: trunk, color: 0x5d4130 }];
+    const parts = [{ geo: trunkGeo(2.3, 0.22, 0.12, 0.06, 0x5d4130), color: 0x5d4130 }];
     for (let i = 0; i < 3; i++) {
       const cone = new THREE.ConeGeometry(1.9 - i * 0.5, 2.0, 7);
       cone.translate(0, 2.6 + i * 1.25, 0);
@@ -27,9 +40,7 @@ export function treeParts(kind) { // geometrias por parte (o plantio instancia)
     }
     return parts;
   }
-  const trunk = new THREE.CylinderGeometry(0.28, 0.42, 2.6, 6);
-  trunk.translate(0, 1.3, 0);
-  const parts = [{ geo: trunk, color: 0x6b4a30 }];
+  const parts = [{ geo: trunkGeo(2.7, 0.3, 0.16, 0.14, 0x6b4a30), color: 0x6b4a30 }];
   const c1 = new THREE.IcosahedronGeometry(1.9, 0); c1.translate(0, 3.6, 0);
   const c2 = new THREE.IcosahedronGeometry(1.4, 0); c2.translate(1.1, 3.0, 0.5);
   const c3 = new THREE.IcosahedronGeometry(1.3, 0); c3.translate(-1.0, 3.1, -0.4);
