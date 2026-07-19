@@ -5,7 +5,6 @@
   "main": "index.js",
   "scripts": {
     "test": "node --test test/logic.test.mjs",
-    "gen-world": "node scripts/gen-world-json.mjs",
     "olhar": "node scripts/screenshot.mjs",
     "forja": "node scripts/forja.mjs"
   },
