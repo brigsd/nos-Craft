@@ -1,0 +1,14 @@
+{
+  "_": "Referências de silhueta pro crítico (forja sil <id> <ref>). Cada uma é um polígono FECHADO traçado de foto real, y pra cima, unidades livres (a comparação normaliza as bboxes). hide/yaw definem como isolar e de onde olhar. Traçar uma referência nova = olhar a foto e anotar o contorno em ~10-16 pontos.",
+  "pe-lado": {
+    "desc": "pé humano descalço, vista lateral (foto do ideador, ronda 8): coluna do tornozelo, bolha do calcanhar atrás, sola plana, rampa do peito do pé, dedos baixos na frente. Dedos apontam pra ESQUERDA na tela (câmera yaw +90° => +z do mundo aponta pra esquerda).",
+    "yaw": 1.5708,
+    "pitch": 0.03,
+    "hide": ["torso", "legL", "coxaR", "canelaR"],
+    "poly": [
+      [150, 90], [158, 76], [168, 52], [170, 34], [164, 12], [152, 2],
+      [140, 0], [30, 0], [10, 2], [3, 8], [0, 16], [6, 24], [18, 27],
+      [55, 36], [90, 52], [112, 68], [118, 90]
+    ]
+  }
+}

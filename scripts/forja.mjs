@@ -7,6 +7,12 @@
 //                                             nomeadas) e fotografa só o resto —
 //                                             visão MICRO pra detalhar uma parte
 //                                             sem o resto atrapalhar. Ver docs/FORJA.md.
+//   node scripts/forja.mjs sil <id> <ref>     NOTA DE SILHUETA: isola conforme a
+//                                             referência (qa/ref/silhuetas.json),
+//                                             renderiza, compara por IoU com o
+//                                             polígono traçado de foto real e
+//                                             grava o overlay. O "está realmente
+//                                             bom?" vira número.
 // Saída: qa/out/forja-<id>.png + qa/out/forja-audit.json
 import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
@@ -58,6 +64,23 @@ for (const id of ids) {
     const file = join(OUT, `forja-${id}.png`);
     writeFileSync(file, Buffer.from(dataUrl.split(',')[1], 'base64'));
     if (cmd === 'shot') console.log(`foto ${file}`);
+  }
+}
+if (cmd === 'sil') {
+  const [id, refName] = idsArg;
+  const refs = JSON.parse(readFileSync(join(ROOT, 'qa', 'ref', 'silhuetas.json'), 'utf8'));
+  const ref = refs[refName];
+  if (!id || !ref) {
+    console.error(`uso: node scripts/forja.mjs sil <id> <ref>\nrefs disponíveis: ${Object.keys(refs).filter((k) => k !== '_').join(', ')}`);
+    process.exit(1);
+  }
+  const r = await page.evaluate(([i, rf]) => window.__ST__.silScore(i, rf.poly, { hide: rf.hide ?? [], yaw: rf.yaw ?? Math.PI / 2, pitch: rf.pitch ?? 0.03 }), [id, ref]);
+  if (r.overlay) {
+    const f = join(OUT, `sil-${id}-${refName}.png`);
+    writeFileSync(f, Buffer.from(r.overlay.split(',')[1], 'base64'));
+    console.log(`silhueta ${id} vs ${refName}: IoU ${(r.iou * 100).toFixed(1)}%  ->  ${f}`);
+  } else {
+    console.log(`silhueta ${id} vs ${refName}: máscara vazia (nada visível?)`);
   }
 }
 if (cmd === 'part') {

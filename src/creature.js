@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { loft, countershade, clampBelow } from './lib/loft.js';
 import { chamferBox } from './lib/geo.js';
+import { inflate } from './lib/silhouette.js';
 
 /* materiais memoizados (Forja ronda 1: 15 draw calls por boneco) */
 const _mc = new Map();
@@ -147,33 +148,45 @@ export function makeBiped({ tint = 0x9a7a5a, skin = 0xd8b090, gnoll = false, sca
     ], { seg: 8, capStart: false, capEnd: false, color: 0x3a3028 });
     const calfMesh = new THREE.Mesh(shinGeo, VC()); calfMesh.name = s === 1 ? 'canelaR' : 'canelaL';
     shin.add(calfMesh);
-    /* pé descalço em L (Forja ronda 7, iteração 3 — insight do ideador com
-       foto de referência: "em linhas gerais o pé é um L"). As tentativas
-       anteriores falharam por montagem: loft-tubo diagonal lia como cone;
-       caixas soltas (calcanhar+corpo+bolinhas) liam como sabonete. Agora é
-       UMA malha contínua cuja ESPINHA segue o L de verdade — desce pelo
-       tornozelo, bolha do calcanhar atrás, dobra pra frente, achata até a
-       base dos dedos — e a sola é achatada com clampBelow (loft.js, novo:
-       tubo elíptico arredonda por baixo; sola de verdade é plana). */
+    /* pé descalço SILHUETA-PRIMEIRO (Forja ronda 8 — depois de 3 versões
+       reprovadas autorando coordenadas 3D no escuro, o workflow inverteu:
+       o pé agora é DESENHADO em 2D — perfil lateral com o L de verdade
+       (tornozelo → bolha do calcanhar → sola plana → sobe no peito → dedos)
+       + planta vista de cima (calcanhar estreito → bola do pé larga →
+       afunila nos dedos) — e inflate() (lib/silhouette.js) vira malha cuja
+       silhueta bate com o desenho POR CONSTRUÇÃO. Sola plana vem do
+       expoente squareBottom da superelipse, sem pós-processo. */
     const pe = new THREE.Group(); pe.name = s === 1 ? 'peR' : 'peL'; shin.add(pe);
-    const footGeo = loft([
-      { p: [0, -0.40, 0.005], rx: 0.044, rz: 0.048 },  // tornozelo (some na canela, SEM tampa)
-      { p: [0, -0.50, -0.02], rx: 0.05, rz: 0.056 },   // calcanhar — projeta pra TRÁS
-      { p: [0, -0.545, 0.05], rx: 0.052, rz: 0.036 },  // a dobra do L: vira pra frente
-      { p: [0, -0.556, 0.14], rx: 0.058, rz: 0.027 },  // meio do pé, achatando
-      { p: [0, -0.558, 0.225], rx: 0.061, rz: 0.021 }, // base dos dedos, largo e baixo
-    ], { seg: 8, capStart: false, capEnd: true, color: 0xd8b090 });
-    clampBelow(footGeo, -0.572); // sola plana no chão
+    // perfil LATERAL [z, y] — o L (z pra frente, y pra cima; sola em -0.572)
+    const peLado = [
+      [-0.022, -0.40],  // tornozelo, atrás (some na canela)
+      [-0.058, -0.48],  // calcanhar: bolha projeta pra trás
+      [-0.05, -0.555],
+      [-0.032, -0.572], // base do calcanhar no chão
+      [0.20, -0.572],   // sola plana até a frente
+      [0.25, -0.565],   // ponta dos dedos, sobe redonda
+      [0.255, -0.542],
+      [0.215, -0.522],  // topo dos dedos
+      [0.10, -0.492],   // peito do pé (afinado demais na iteração 2 — a régua acusou)
+      [0.036, -0.40],   // tornozelo, frente (coluna mais fina)
+    ];
+    // planta VISTA DE CIMA [z, x] — calcanhar estreito, bola larga, dedos afinam
+    const peCima = [
+      [-0.055, 0.032], [0.0, 0.038], [0.10, 0.042], [0.17, 0.048],
+      [0.225, 0.042], [0.25, 0.026],
+      [0.25, -0.026], [0.225, -0.042], [0.17, -0.048], [0.10, -0.042],
+      [0.0, -0.038], [-0.055, -0.032],
+    ];
+    const footGeo = inflate(peLado, peCima, { stations: 13, seg: 10, squareTop: 2.1, squareBottom: 5, color: 0xd8b090 });
     pe.add(new THREE.Mesh(footGeo, VC()));
-    // dedos: bossas na frente, meio afundadas no corpo do pé — separam a
-    // silhueta (ref. 2 do ideador) sem virar bolinhas soltas
+    // dedos: bossas meio afundadas na frente — separam a silhueta de cima
     const toeMat = M(0xd8b090);
     for (let i = 0; i < 4; i++) {
       const t = i / 3; // 0 = dedão, 1 = mindinho
-      const tr = 0.028 - t * 0.013;
+      const tr = 0.026 - t * 0.012;
       const toe = new THREE.Mesh(new THREE.SphereGeometry(tr, 7, 5), toeMat);
       toe.scale.set(1, 0.72, 1.3);
-      toe.position.set(-0.038 + t * 0.078, -0.556, 0.248 + t * 0.004);
+      toe.position.set(-0.034 + t * 0.07, -0.552, 0.235 + t * 0.004);
       pe.add(toe);
     }
     parts[s === 1 ? 'legR' : 'legL'] = leg;

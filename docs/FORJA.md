@@ -24,6 +24,7 @@ npm run forja -- audit              # audita tudo (exit 1 se error)
 npm run forja -- audit lobo         # só um objeto
 npm run forja -- shot lobo          # folha de contato -> qa/out/forja-lobo.png
 npm run forja -- part jogador torso # esconde o tronco (some cabeça/braços junto) -> forja-jogador-isolado.png
+npm run forja -- sil jogador pe-lado # nota de silhueta vs referência traçada de foto -> sil-jogador-pe-lado.png
 npm run forja -- diff lobo          # compara qa/baseline/ vs qa/out/ (antes/depois)
 npm run forja -- all                # audita + fotografa tudo
 ```
@@ -111,5 +112,29 @@ num achado de anatomia (em vez de só o índice numérico).
    na primeira vez que dei nome a uma peça nova (a canela sumiu junto sem
    aviso) — virou lista-do-que-ESCONDER, mais robusta a nomes futuros.
 
+8. **Silhueta-primeiro + nota objetiva (`lib/silhouette.js` + `forja sil`)**
+   — diagnóstico do ideador: "a abordagem está errada pra IA trabalhar" —
+   autorar coordenadas 3D cruas usa a IA na fraqueza (chutar o efeito
+   espacial de um float) e ignora a força (raciocinar sobre formas 2D).
+   Agora a peça é DESENHADA em dois perfis 2D (lateral z×y + planta z×x,
+   como ficha de model sheet) e `inflate()` vira malha 3D com seções
+   superelipse (expoentes separados topo/baixo = sola plana + dorso
+   redondo por construção). E o "está realmente bom?" virou número:
+   `forja sil <id> <ref>` compara a silhueta renderizada com um polígono
+   traçado de foto real (qa/ref/silhuetas.json) por IoU e grava overlay
+   mostrando ONDE foge. Guia de leitura: >85% forma bate; 70-85% tem
+   desvio visível — abra o overlay; <70% reprova. Dois bugs da própria
+   régua achados e corrigidos NA PRIMEIRA USADA: (a) cor de fundo via
+   THREE.Color dava valores linear-space vs framebuffer sRGB — máscara
+   marcava o fundo todo como objeto; (b) normalização por bbox esticado
+   perdoava proporção errada e oscilava por re-registro — trocada por
+   escala uniforme + sola alinhada, proporção agora custa nota. O pé do
+   bípede foi refeito nesse workflow: 3 iterações de EDITAR PONTOS 2D com
+   nota de feedback (58%→90% com régua frouxa; 77%→87.7% com régua
+   honesta), coisa que na ronda 7 eram chutes cegos de coordenadas.
+
 Cada ronda: **audite, olhe a folha de contato de verdade, aponte o defeito
 concreto antes de aprovar, corrija, re-audite.** Não se dê por satisfeito.
+E antes de concluir qualquer ronda visual: **"está REALMENTE bom?"** —
+rode `forja sil` se houver referência, e se não houver, trace uma
+(qa/ref/silhuetas.json, ~10-16 pontos olhando uma foto real).

@@ -233,8 +233,128 @@ function hide(names) {
   const set = new Set(names);
   current.traverse((o) => { if (set.has(o.name)) o.visible = false; });
 }
+/**
+ * NOTA DE SILHUETA (ronda 8) — o "está realmente bom?" vira número.
+ * Renderiza o objeto (com peças escondidas via hideNames) de um ângulo,
+ * extrai a máscara de pixels não-fundo, e compara com um polígono de
+ * referência (traçado de foto real, y pra cima) por IoU depois de
+ * normalizar as duas bboxes. Devolve { iou, overlay } — overlay é um PNG
+ * com o render + o contorno da referência por cima, pro olho conferir
+ * ONDE a forma foge, não só o quanto.
+ */
+export async function silScore(id, refPoly, { hide: hideNames = [], yaw: sy = Math.PI / 2, pitch: sp = 0.03 } = {}) {
+  const prevYaw = yaw, prevPitch = pitch, prevSpin = spin;
+  show(id);
+  if (hideNames.length) hide(hideNames);
+  grid.visible = false; ref.visible = false;
+  yaw = sy; pitch = sp; spin = false;
+  // enquadra no que ficou visível (setFromObject ignoraria o hide)
+  const bb = new THREE.Box3();
+  current.updateMatrixWorld(true);
+  current.traverse((o) => {
+    if (!o.isMesh) return;
+    for (let n = o; n; n = n.parent) if (!n.visible) return;
+    if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    bb.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld));
+  });
+  const size = bb.getSize(new THREE.Vector3());
+  dist = Math.max(1.2, size.length() * 1.9);
+  const S = 480;
+  const old = renderer.getSize(new THREE.Vector2());
+  renderer.setSize(S, S, false);
+  camera.aspect = 1; camera.updateProjectionMatrix();
+  const mid = bb.getCenter(new THREE.Vector3());
+  camera.position.set(Math.sin(yaw) * dist, mid.y + dist * Math.sin(pitch), Math.cos(yaw) * dist);
+  camera.lookAt(mid.x, mid.y, mid.z);
+  renderer.render(scene, camera);
+  const shot = document.createElement('canvas');
+  shot.width = shot.height = S;
+  shot.getContext('2d').drawImage(renderer.domElement, 0, 0);
+  renderer.setSize(old.x, old.y, false);
+  camera.aspect = old.x / old.y; camera.updateProjectionMatrix();
+  grid.visible = true; ref.visible = true;
+  yaw = prevYaw; pitch = prevPitch; spin = prevSpin;
+
+  // ---- máscara do render (pixel != cor de fundo) ----
+  // fundo REAL amostrado do canto do frame — calcular via THREE.Color dava
+  // valores em espaço linear (setHex converte sRGB->linear) enquanto o
+  // framebuffer está em sRGB: a máscara marcava o fundo inteiro como objeto
+  const px = shot.getContext('2d').getImageData(0, 0, S, S).data;
+  const bgr = px[0], bgg = px[1], bgb = px[2];
+  const mask = new Uint8Array(S * S);
+  let x0 = S, x1 = 0, y0 = S, y1 = 0;
+  for (let i = 0; i < S * S; i++) {
+    const d = Math.abs(px[i * 4] - bgr) + Math.abs(px[i * 4 + 1] - bgg) + Math.abs(px[i * 4 + 2] - bgb);
+    if (d > 28) {
+      mask[i] = 1;
+      const x = i % S, y = (i / S) | 0;
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+  }
+  if (x1 <= x0) return { iou: 0, overlay: null };
+
+  /* ---- normalização HONESTA: escala uniforme pelo comprimento, sola
+     alinhada embaixo. A v1 esticava cada bbox pra um quadrado — isso
+     perdoava proporção errada (altura×comprimento) e fazia a nota oscilar
+     por re-registro quando a forma mal mudava. Com escala uniforme, se o
+     objeto é alto demais pro comprimento, a nota CAI — proporção agora é
+     parte da régua. */
+  const w = x1 - x0 + 1, h = y1 - y0 + 1;
+  const rxs = refPoly.map((p) => p[0]), rys = refPoly.map((p) => p[1]);
+  const rx0 = Math.min(...rxs), rx1 = Math.max(...rxs), ry0 = Math.min(...rys), ry1 = Math.max(...rys);
+  const rw = rx1 - rx0, rh = ry1 - ry0;
+  const N = 220; // largura comum
+  const objH = Math.max(2, Math.round((h / w) * N));
+  const refH = Math.max(2, Math.round((rh / rw) * N));
+  const MH = Math.max(objH, refH);
+
+  const refCv = document.createElement('canvas'); refCv.width = N; refCv.height = MH;
+  const rg = refCv.getContext('2d');
+  rg.fillStyle = '#fff';
+  rg.beginPath();
+  refPoly.forEach(([x, y], i) => {
+    const X = ((x - rx0) / rw) * N;
+    const Y = MH - ((y - ry0) / rh) * refH; // y pra cima + sola no fundo
+    i ? rg.lineTo(X, Y) : rg.moveTo(X, Y);
+  });
+  rg.closePath(); rg.fill();
+  const refPx = rg.getImageData(0, 0, N, MH).data;
+
+  const objCv = document.createElement('canvas'); objCv.width = N; objCv.height = MH;
+  const og = objCv.getContext('2d');
+  og.drawImage(shot, x0, y0, w, h, 0, MH - objH, N, objH);
+  const objPx = og.getImageData(0, 0, N, MH).data;
+
+  let inter = 0, uni = 0;
+  for (let i = 0; i < N * MH; i++) {
+    const a = refPx[i * 4] > 127 ? 1 : 0;
+    const b = Math.abs(objPx[i * 4] - bgr) + Math.abs(objPx[i * 4 + 1] - bgg) + Math.abs(objPx[i * 4 + 2] - bgb) > 28 ? 1 : 0;
+    if (a && b) inter++;
+    if (a || b) uni++;
+  }
+  const iou = uni ? inter / uni : 0;
+
+  // ---- overlay: recorte do render + contorno da ref por cima (2x) ----
+  const ov = document.createElement('canvas'); ov.width = N * 2; ov.height = MH * 2;
+  const vg = ov.getContext('2d');
+  vg.fillStyle = '#22262c'; vg.fillRect(0, 0, N * 2, MH * 2);
+  vg.imageSmoothingEnabled = false;
+  vg.drawImage(shot, x0, y0, w, h, 0, (MH - objH) * 2, N * 2, objH * 2);
+  vg.strokeStyle = '#8ff8e2'; vg.lineWidth = 2; vg.setLineDash([6, 4]);
+  vg.beginPath();
+  refPoly.forEach(([x, y], i) => {
+    const X = ((x - rx0) / rw) * N * 2;
+    const Y = (MH - ((y - ry0) / rh) * refH) * 2;
+    i ? vg.lineTo(X, Y) : vg.moveTo(X, Y);
+  });
+  vg.closePath(); vg.stroke();
+  vg.fillStyle = '#f0c95c'; vg.font = '20px Georgia';
+  vg.fillText(`IoU ${(iou * 100).toFixed(1)}%`, 10, 26);
+  return { iou, overlay: ov.toDataURL('image/png') };
+}
+
 window.__ST__ = {
-  show, audit, contact, hide,
+  show, audit, contact, hide, silScore,
   angle: (y, p, d) => { yaw = y; pitch = p; if (d) dist = d; spin = false; },
   list: () => REGISTRY.map((r) => r.id),
 };
