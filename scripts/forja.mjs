@@ -3,6 +3,10 @@
 //   node scripts/forja.mjs shot [ids...]     folhas de contato (4 ângulos × 2 luzes)
 //   node scripts/forja.mjs audit [ids...]    crítico algorítmico (exit 1 se error)
 //   node scripts/forja.mjs all               tudo: audita e fotografa
+//   node scripts/forja.mjs part <id> <nome1,nome2,...>   ISOLA peças (esconde as
+//                                             nomeadas) e fotografa só o resto —
+//                                             visão MICRO pra detalhar uma parte
+//                                             sem o resto atrapalhar. Ver docs/FORJA.md.
 // Saída: qa/out/forja-<id>.png + qa/out/forja-audit.json
 import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
@@ -55,6 +59,18 @@ for (const id of ids) {
     writeFileSync(file, Buffer.from(dataUrl.split(',')[1], 'base64'));
     if (cmd === 'shot') console.log(`foto ${file}`);
   }
+}
+if (cmd === 'part') {
+  const [id, namesArg] = idsArg;
+  const hideNames = (namesArg || '').split(',').map((s) => s.trim()).filter(Boolean);
+  if (!id || !hideNames.length) {
+    console.error('uso: node scripts/forja.mjs part <id> <nome1,nome2,...>  (esconde essas peças e fotografa o resto)');
+    process.exit(1);
+  }
+  const dataUrl = await page.evaluate(([i, names]) => window.__ST__.contact(i, names), [id, hideNames]);
+  const file = join(OUT, `forja-${id}-isolado.png`);
+  writeFileSync(file, Buffer.from(dataUrl.split(',')[1], 'base64'));
+  console.log(`foto ${file} (escondido: ${hideNames.join(', ')})`);
 }
 if (cmd === 'diff') {
   for (const id of ids) {

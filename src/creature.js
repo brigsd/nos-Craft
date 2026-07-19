@@ -39,9 +39,9 @@ export function makeBiped({ tint = 0x9a7a5a, skin = 0xd8b090, gnoll = false, sca
   const parts = {};
   const cloth = M(tint), flesh = M(skin);
 
-  const pelvis = new THREE.Group(); pelvis.position.y = 0.95; g.add(pelvis); parts.pelvis = pelvis;
+  const pelvis = new THREE.Group(); pelvis.name = 'pelvis'; pelvis.position.y = 0.95; g.add(pelvis); parts.pelvis = pelvis;
   const torso = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.72, 0.36), cloth);
-  torso.position.y = 0.42; pelvis.add(torso); parts.torso = torso;
+  torso.name = 'torso'; torso.position.y = 0.42; pelvis.add(torso); parts.torso = torso;
   /* ombreiras: achatadas (Forja ronda 4 — esfera 0.17 virou bola de praia
      flutuando quando o braço emagreceu pro loft; agora é uma cunha que
      cobre a JUNTA ombro->braço, não um adorno solto) */
@@ -56,11 +56,11 @@ export function makeBiped({ tint = 0x9a7a5a, skin = 0xd8b090, gnoll = false, sca
      descendentes na bbox do pai, então cabeça "dentro" do tronco sempre
      "tocava" nele mesmo boiando) */
   const neckGeo = loft([
-    { p: [0, 0.34, 0.02], rx: 0.15, rz: 0.13 },
-    { p: [0, 0.8, 0.05], rx: 0.11, rz: 0.1 },
+    { p: [0, 0.32, 0.02], rx: 0.15, rz: 0.13 },
+    { p: [0, 0.46, 0.03], rx: 0.13, rz: 0.12 },
   ], { seg: 6, color: skin });
   torso.add(new THREE.Mesh(neckGeo, VC()));
-  const head = new THREE.Group(); head.position.y = 0.98; torso.add(head); parts.head = head;
+  const head = new THREE.Group(); head.name = 'head'; head.position.y = 0.67; torso.add(head); parts.head = head;
   const skull = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.42, 0.4), flesh);
   head.add(skull);
   skull.add(eye(-0.1, 0.04, 0.21), eye(0.1, 0.04, 0.21));
@@ -115,26 +115,52 @@ export function makeBiped({ tint = 0x9a7a5a, skin = 0xd8b090, gnoll = false, sca
     parts.foreR.add(w);
     parts.weapon = w;
   }
-  // pernas: mesmo loft contínuo (coxa->canela) das mãos/braços
+  /* pernas (Forja ronda 7 — isolando a perna sozinha no estúdio apareceram
+     2 defeitos escondidos pelo tronco na vista normal: ponta de cone no
+     topo da coxa — tampa do loft numa ponta que devia ficar ABERTA pq
+     encosta no quadril — e um anel em losango no "joelho", duas tampas
+     próximas se encontrando. Fix: coxa/canela sem tampa nas pontas que se
+     tocam (capStart/capEnd:false — ver loft.js), + curvatura de verdade
+     (bulbo do quadríceps na coxa, batata da perna atrás na canela) em vez
+     de cone reto. Pé trocado de caixa-bota pra pé descalço com dedos. */
   for (const s of [-1, 1]) {
     const leg = new THREE.Group();
+    leg.name = s === 1 ? 'legR' : 'legL';
     leg.position.set(s * 0.17, 0.08, 0);
     pelvis.add(leg);
     const thighGeo = loft([
-      { p: [0, 0.02, 0], rx: 0.13, rz: 0.14 },
-      { p: [0, -0.22, 0.015], rx: 0.105 },
-      { p: [0, -0.44, 0], rx: 0.085 },
-    ], { seg: 6, color: 0x4a3c30 });
+      { p: [0, 0.06, -0.01], rx: 0.115, rz: 0.125 },  // topo — dentro da pélvis, SEM tampa
+      { p: [0, -0.06, 0.015], rx: 0.135, rz: 0.145 }, // bulbo do quadríceps (mais largo, puxa pra frente)
+      { p: [0, -0.24, 0.01], rx: 0.108, rz: 0.11 },
+      { p: [0, -0.40, -0.005], rx: 0.082, rz: 0.078 },
+      { p: [0, -0.46, -0.01], rx: 0.072, rz: 0.07 },  // joelho — SEM tampa, encosta na canela
+    ], { seg: 8, capStart: false, capEnd: false, color: 0x4a3c30 });
     leg.add(new THREE.Mesh(thighGeo, VC()));
-    const shin = new THREE.Group(); shin.position.y = -0.46; leg.add(shin);
+    const shin = new THREE.Group(); shin.name = s === 1 ? 'shinR' : 'shinL'; shin.position.y = -0.46; leg.add(shin);
     const shinGeo = loft([
-      { p: [0, 0.02, 0], rx: 0.082 },
-      { p: [0, -0.2, 0], rx: 0.062 },
-      { p: [0, -0.4, 0.01], rx: 0.05 },
-    ], { seg: 6, color: 0x3a3028 });
+      { p: [0, 0.03, -0.01], rx: 0.078, rz: 0.075 },  // topo — encosta na coxa, SEM tampa
+      { p: [0, -0.08, -0.03], rx: 0.09, rz: 0.088 },  // batata da perna (gastrocnêmio, puxa pra trás)
+      { p: [0, -0.26, 0], rx: 0.062, rz: 0.058 },
+      { p: [0, -0.42, 0.02], rx: 0.042, rz: 0.04 },   // tornozelo — SEM tampa, o pé cobre
+    ], { seg: 8, capStart: false, capEnd: false, color: 0x3a3028 });
     shin.add(new THREE.Mesh(shinGeo, VC()));
-    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.12, 0.32), M(0x2c241e));
-    foot.position.set(0, -0.46, 0.06); shin.add(foot);
+    // pé descalço (sem bota): peito do pé achatado + fileira de dedos
+    const footGeo = loft([
+      { p: [0, -0.42, 0.02], rx: 0.045, rz: 0.05 },   // tornozelo — SEM tampa, encosta na canela
+      { p: [0, -0.50, 0.09], rx: 0.06, rz: 0.09 },    // peito do pé, desce e alarga
+      { p: [0, -0.52, 0.21], rx: 0.065, rz: 0.11 },   // meio do pé, achatado
+      { p: [0, -0.51, 0.30], rx: 0.05, rz: 0.09 },    // base dos dedos
+    ], { seg: 8, capStart: false, capEnd: true, color: 0xd8b090 });
+    shin.add(new THREE.Mesh(footGeo, VC()));
+    const toeMat = M(0xd8b090);
+    for (let i = 0; i < 4; i++) {
+      const t = i / 3; // 0 = dedão, 1 = mindinho
+      const tr = 0.026 - t * 0.013;
+      const toe = new THREE.Mesh(new THREE.SphereGeometry(tr, 6, 5), toeMat);
+      toe.scale.set(1, 0.62, 1.1);
+      toe.position.set(-0.045 + t * 0.09, -0.508, 0.335 + t * 0.008);
+      shin.add(toe);
+    }
     parts[s === 1 ? 'legR' : 'legL'] = leg;
     parts[s === 1 ? 'shinR' : 'shinL'] = shin;
   }

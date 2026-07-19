@@ -127,10 +127,13 @@ export function audit(id) {
   return { id, stats: st, findings: f };
 }
 
-/** folha de contato: 4 ângulos × 2 rigs num único canvas (dataURL) */
-export async function contact(id) {
+/** folha de contato: 4 ângulos × 2 rigs num único canvas (dataURL).
+    hideNames (opcional): esconde peças pelo nome ANTES de fotografar — a
+    visão MICRO do fluxo isolar->auditar->melhorar->MACRO (docs/FORJA.md). */
+export async function contact(id, hideNames) {
   const prevRig = rigName, prevYaw = yaw, prevPitch = pitch;
   show(id);
+  if (hideNames && hideNames.length) hide(hideNames);
   const S = 480;
   const sheet = document.createElement('canvas');
   sheet.width = S * 4; sheet.height = S * 2;
@@ -218,4 +221,20 @@ function loop(now) {
 }
 requestAnimationFrame(loop);
 
-window.__ST__ = { show, audit, contact, angle: (y, p, d) => { yaw = y; pitch = p; if (d) dist = d; spin = false; }, list: () => REGISTRY.map((r) => r.id) };
+/** esconde peças pelo nome (Object3D.name) — pra isolar o resto do objeto
+    sem o que atrapalha (ex.: hide(['torso']) some com tronco+cabeça+braços,
+    que são todos filhos dele, sobrando só quadril+pernas). Lista de ESCONDER,
+    não de mostrar: nomes novos adicionados em qualquer lugar do rig ficam
+    visíveis por padrão — não quebram silenciosamente uma chamada antiga
+    (achado da Forja ronda 7: a v1 era lista-do-que-mostrar e uma peça nova
+    nomeada sumia sem aviso se não fosse listada). */
+function hide(names) {
+  if (!current) return;
+  const set = new Set(names);
+  current.traverse((o) => { if (set.has(o.name)) o.visible = false; });
+}
+window.__ST__ = {
+  show, audit, contact, hide,
+  angle: (y, p, d) => { yaw = y; pitch = p; if (d) dist = d; spin = false; },
+  list: () => REGISTRY.map((r) => r.id),
+};

@@ -16,18 +16,47 @@ y=0) — quem posiciona no mundo é `props.js`.
 | Ferramenta | Arquivo | Pra quê |
 |---|---|---|
 | **Estúdio** | `studio.html` / `src/studio.js` | um objeto por vez, 3 rigs de luz, turntable, wireframe, figura-referência 1.80m |
-| **Crítico + folhas de contato** | `scripts/forja.mjs` | `audit` (budget/chão/escala/drawcalls/anatomia-peça-órfã), `shot` (4 ângulos × 2 luzes), `diff` (antes/depois), `all` |
+| **Crítico + folhas de contato** | `scripts/forja.mjs` | `audit` (budget/chão/escala/drawcalls/anatomia-peça-órfã), `shot` (4 ângulos × 2 luzes), `part` (isola peças — MICRO), `diff` (antes/depois), `all` |
 | **Cartógrafo** | `cartografo.html` / `src/cartografo.js` | mapa de cima 100% Canvas2D — roda a MESMA geração do jogo (terrain+props) numa Scene nunca renderizada, plota POIs/estrada/rio/colisores/densidade |
 
 ```bash
 npm run forja -- audit              # audita tudo (exit 1 se error)
 npm run forja -- audit lobo         # só um objeto
 npm run forja -- shot lobo          # folha de contato -> qa/out/forja-lobo.png
+npm run forja -- part jogador torso # esconde o tronco (some cabeça/braços junto) -> forja-jogador-isolado.png
 npm run forja -- diff lobo          # compara qa/baseline/ vs qa/out/ (antes/depois)
 npm run forja -- all                # audita + fotografa tudo
 ```
 Abrir `cartografo.html` num navegador (ou via server local) dá o mapa
 interativo com toggles de camada e leitura de altura/coordenada no cursor.
+
+## O fluxo MICRO → MACRO (isolar pra detalhar, montar pra ver se combina)
+
+Achado do ideador (Forja ronda 7): tronco, braço e cabeça escondem defeito
+de junta nas pernas — só aparecem isolando. Daí o fluxo padrão pra criar OU
+melhorar qualquer parte de um objeto com juntas (bípede, quadrúpede, o que
+vier):
+
+1. **MICRO — isola a peça.** `npm run forja -- part <id> <peças a esconder>`
+   (ou no navegador: `__ST__.show(id); __ST__.hide(['torso'])`). Esconder um
+   nome esconde tudo que é filho dele (`torso` leva junto cabeça/braços/
+   ombreiras/pescoço) — então só sobra a peça que você quer olhar de perto,
+   SEM o resto do corpo tapando o defeito ou distraindo o olho.
+2. **Audite e melhore SÓ aquilo.** Regra do olhar de sempre: aponte o
+   defeito concreto (ponta de cone numa tampa que devia ficar aberta, anel
+   de junta, proporção errada) antes de qualquer elogio. Corrija no código,
+   re-rode o `part` até a peça isolada ler bem sozinha.
+3. **MACRO — monta de novo.** `npm run forja -- shot <id>` (folha de
+   contato do objeto INTEIRO). Uma peça perfeita sozinha pode não combinar
+   com o resto (proporção, altura total, cor) — o crítico (`audit`) pega
+   escala/chão/drawcalls automaticamente, mas COERÊNCIA visual entre partes
+   só o olho vê na folha inteira.
+4. Só então commit. Isolado bonito + montado incoerente = não terminou.
+
+Nomes ficam em `Object3D.name` nos construtores (`torso`, `head`, `pelvis`,
+`legL`/`legR`, `shinL`/`shinR`, ...) — dar nome a uma peça nova É o que a
+torna isolável e é também o que o crítico usa pra apontar QUAL peça flutua
+num achado de anatomia (em vez de só o índice numérico).
 
 ## Biblioteca de qualidade (`src/lib/`)
 
@@ -67,6 +96,20 @@ interativo com toggles de camada e leitura de altura/coordenada no cursor.
    achados). Isso desenterrou mais dois vãos reais: balde do poço
    flutuando sem corda, e anel de pedras da fogueira longe demais das
    toras. Ambos corrigidos e reauditados.
+
+7. **Isolar peça → fluxo micro/macro (`forja part`)** — pedido do ideador:
+   isolar a perna (escondendo o tronco) revelou 2 defeitos que o corpo
+   inteiro escondia — ponta de cone no topo da coxa (a tampa do loft não
+   devia existir ali, a seção fica dentro da pélvis) e um anel em losango
+   no "joelho" (duas tampas de pontas vizinhas se encontrando). Fix:
+   `loft()` ganhou `capStart`/`capEnd` independentes (antes só dava pra
+   tampar as DUAS pontas ou nenhuma); coxa e canela não tampam mais nas
+   pontas que se tocam, e ganharam curvatura real (bulbo do quadríceps,
+   batata da perna) em vez de cone reto. Pé trocado de caixa-bota pra pé
+   descalço com dedos (fileira de 4 esferas achatadas). Bônus: o
+   `isolate`/`hide` do estúdio nasceu como lista-do-que-MOSTRAR e quebrou
+   na primeira vez que dei nome a uma peça nova (a canela sumiu junto sem
+   aviso) — virou lista-do-que-ESCONDER, mais robusta a nomes futuros.
 
 Cada ronda: **audite, olhe a folha de contato de verdade, aponte o defeito
 concreto antes de aprovar, corrija, re-audite.** Não se dê por satisfeito.

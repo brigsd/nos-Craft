@@ -12,7 +12,8 @@
 import * as THREE from 'three';
 import { clamp, lerp } from '../rng.js';
 
-export function loft(sections, { seg = 8, caps = true, capSmooth = true, color = null } = {}) {
+export function loft(sections, { seg = 8, caps = true, capStart, capEnd, capSmooth = true, color = null } = {}) {
+  const doCapStart = capStart ?? caps, doCapEnd = capEnd ?? caps;
   const n = sections.length;
   if (n < 2) throw new Error('loft precisa de >=2 seções');
   const pts = sections.map((s) => new THREE.Vector3(...s.p));
@@ -62,7 +63,7 @@ export function loft(sections, { seg = 8, caps = true, capSmooth = true, color =
   // FORA (uma "tampa de bala" rasa) em vez de um ponto único — um leque
   // raso não gera normais radiais malucas que estouram brilho puro
   // (achado da Forja ronda 3: a v1 acendia "pontas brancas" na cabeça/cauda).
-  if (caps) {
+  if (doCapStart || doCapEnd) {
     const cap = (i0, flip) => {
       const c = pts[i0].clone().add(tans[i0].clone().multiplyScalar(flip * (sections[i0].rx ?? 0.1) * (capSmooth ? 0.55 : 0)));
       const ci = pos.length / 3;
@@ -73,8 +74,13 @@ export function loft(sections, { seg = 8, caps = true, capSmooth = true, color =
         else idx.push(ci, (j + 1) % seg, j);
       }
     };
-    cap(0, -1);
-    cap(n - 1, 1);
+    /* pontas SEM tampa (capStart/capEnd:false) são de propósito: a seção
+       fica escondida dentro de outra peça (coxa->pélvis) ou encostada na
+       peça vizinha (coxa->canela) — tampar ali só desperdiça triângulo e,
+       pior, cria a "ponta de cone"/anel-losango vistos isolando a perna
+       (Forja ronda 7). Ver docs/FORJA.md, fluxo micro/macro. */
+    if (doCapStart) cap(0, -1);
+    if (doCapEnd) cap(n - 1, 1);
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
