@@ -12,6 +12,7 @@ import carvalhoData from './models/arvore-carvalho.json' with { type: 'json' };
 import pinheiroData from './models/arvore-pinheiro.json' with { type: 'json' };
 import cogumeloData from './models/approved/cogumelo.json' with { type: 'json' };
 import cogumeloMarromData from './models/approved/cogumelo-marrom.json' with { type: 'json' };
+import cogumeloAmareloData from './models/approved/cogumelo-amarelo.json' with { type: 'json' };
 import { MOB_TYPES, NPCS } from './data.js';
 
 // orçamentos de triângulos por categoria (o crítico cobra)
@@ -22,6 +23,7 @@ export const REGISTRY = [
   { id: 'arvore-pinheiro', cat: 'veg', h: [3, 8], make: () => buildModelFromData(pinheiroData).group },
   { id: 'cogumelo', cat: 'veg', h: [0.5, 1.8], make: () => buildModelFromData(cogumeloData).group },
   { id: 'cogumelo-marrom', cat: 'veg', h: [0.5, 1.8], make: () => buildModelFromData(cogumeloMarromData).group },
+  { id: 'cogumelo-amarelo', cat: 'veg', h: [0.5, 1.8], make: () => buildModelFromData(cogumeloAmareloData).group },
   { id: 'rocha', cat: 'veg', h: [0.3, 2.4], make: () => buildModelFromData(rochaData).group },
   { id: 'casa', cat: 'build', h: [3.5, 7], make: () => makeHouse({ w: 5, d: 6 }) },
   { id: 'taverna', cat: 'build', h: [4, 8], make: () => makeHouse({ w: 7.5, d: 8, hW: 3.2, roofColor: 0x6d3b2a }) },
