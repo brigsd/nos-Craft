@@ -1,0 +1,35 @@
+{
+  "id": "cogumelo-marrom",
+  "kind": "veg",
+  "scale": 1.0,
+  "root": {
+    "name": "mushroom",
+    "type": "group",
+    "children": [
+      {
+        "name": "stem",
+        "type": "loft",
+        "sections": [
+          { "p": [0, 0.01, 0], "rx": 0.18, "rz": 0.18 },
+          { "p": [0, 0.4, 0], "rx": 0.14, "rz": 0.14 },
+          { "p": [0, 0.8, 0], "rx": 0.11, "rz": 0.11 }
+        ],
+        "seg": 8,
+        "capStart": true,
+        "capEnd": false,
+        "capSmooth": false,
+        "color": "0xd8cfb4"
+      },
+      {
+        "name": "cap",
+        "type": "sphere",
+        "radius": 0.6,
+        "seg": [16, 12],
+        "thetaLength": 1.5708,
+        "scale": [1.1, 0.75, 1.1],
+        "position": [0, 0.72, 0],
+        "color": "0xd8cfb4"
+      }
+    ]
+  }
+}
