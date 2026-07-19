@@ -4,7 +4,7 @@
 > **termina atualizando**. Sessão que não atualiza a continuidade é sessão
 > perdida. (Regra da casa do NÓS.)
 
-## Estado atual — 2026-07-19 (ronda 9)
+## Estado atual — 2026-07-19 (ronda 10)
 
 **O foco é A Forja** (a bancada de ferramentas), não o jogo — ver
 `docs/DECISIONS.md` D-2. O motor do jogo funciona e está congelado.
@@ -17,8 +17,8 @@
   Orçamento por categoria em `BUDGET`: veg 900 / prop 2600 / build 5200 /
   creature 3200 / hero 5200 tris.
 - **Testes de lógica: 5/5** (`npm test` — combate, quests, dados).
-- **Três ferramentas**: Estúdio (`studio.html`), Crítico + folhas de contato +
-  nota de silhueta + traçador (`scripts/forja.mjs`), Cartógrafo
+- **Ferramentas**: Estúdio (`studio.html`), Crítico + folhas de contato +
+  nota/diagnóstico de silhueta + traçador + **ronda automatizada** (`scripts/forja.mjs`), Cartógrafo
   (`cartografo.html`). Detalhe em `docs/FORJA.md`.
 
 ### Biblioteca de qualidade (`src/lib/`)
@@ -28,21 +28,16 @@
 - `geo.js` — chanfro de caixa, paleta em rampas, texturas de canvas, `statsOf`.
 
 ### Últimas rondas (log completo em `docs/FORJA.md`)
-- **7** — fluxo micro→macro (isolar peça: `forja part`) + perna do bípede
-  redesenhada; pé em L (malha única + `clampBelow`).
 - **8** — silhueta-primeiro + nota objetiva (`forja sil`, IoU vs referência).
-  Dois bugs da própria régua achados e corrigidos na primeira usada.
 - **9** — multi-vista (`fromViews` 1/2/3 vistas) + traçador de desenho
   (`forja trace`, canal do ideador) + skill `.claude/skills/silhueta/`.
+- **10** — **Diagnóstico textual de silhueta** (`forja sil` aponta região e % de sobra/falta de material e desvio de proporção) + **`forja ronda <id>`** (comando único que executa audit, shot e sil em sequência) + **Objetos-como-dados** (interpretador `src/lib/model-builder.js` e modelos JSON declarativos em `src/models/*.json` para todas as criaturas e vegetação; 23/23 objetos auditados e verdes).
 
 ## Próximos passos (candidatos, não obrigações)
-1. **Estrear o canal de desenho do ideador**: ele desenha uma vista, `forja
-   trace` converte, `fromViews` infla — refazer uma parte a partir do desenho
-   dele de ponta a ponta.
-2. **Traçar referências pras outras vistas** (pé de cima, mão, perfil do corpo)
-   e refazer as demais partes do bípede no fluxo silhueta-primeiro.
-3. **Costura da copa** ("vão entre lobos" na árvore) — anotado desde a ronda 5,
-   ainda em aberto.
+1. **Estrear o canal de desenho do ideador**: ele desenha uma vista, `forja trace` converte, `fromViews` infla — refazer uma parte a partir do desenho dele de ponta a ponta.
+2. **Criar ou iterar novo modelo orgânico via JSON**: testar a criação de uma nova criatura/prop 100% via arquivo `.json` sem alterar JS.
+3. **Traçar referências pras outras vistas** (pé de cima, mão, perfil do corpo) e refazer as demais partes do bípede no fluxo silhueta-primeiro.
+4. **Costura da copa** ("vão entre lobos" na árvore) — anotado desde a ronda 5, ainda em aberto.
 4. Auditar/melhorar os objetos que ainda são só caixa/loft antigo (casa e
    taverna acusam 12 materiais — candidatos a fundir draw calls).
 

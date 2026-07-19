@@ -42,8 +42,18 @@ await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
 const base = `http://127.0.0.1:${server.address().port}/`;
 
 const { chromium } = await import('playwright-core');
-const exe = process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium';
-const browser = await chromium.launch({ executablePath: existsSync(exe) ? exe : undefined, args: ['--use-angle=swiftshader'] });
+let exe = process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium';
+if (!existsSync(exe) && process.platform === 'win32') {
+  const pwDir = join(process.env.LOCALAPPDATA || '', 'ms-playwright');
+  if (existsSync(pwDir)) {
+    const candidates = [
+      join(pwDir, 'chromium-1228', 'chrome-win64', 'chrome.exe'),
+      join(pwDir, 'chromium_headless_shell-1228', 'chrome-headless-shell-win64', 'chrome-headless-shell.exe')
+    ];
+    for (const c of candidates) { if (existsSync(c)) { exe = c; break; } }
+  }
+}
+const browser = await chromium.launch({ executablePath: existsSync(exe) ? exe : undefined, args: ['--use-angle=swiftshader', '--headless=new'] });
 const page = await browser.newPage({ viewport: { width: 900, height: 900 } });
 page.on('pageerror', (e) => console.log('PAGEERROR:', e.message));
 await page.goto(base + 'studio.html');
@@ -84,9 +94,54 @@ if (cmd === 'sil') {
     const f = join(OUT, `sil-${id}-${refName}.png`);
     writeFileSync(f, Buffer.from(r.overlay.split(',')[1], 'base64'));
     console.log(`silhueta ${id} vs ${refName}: IoU ${(r.iou * 100).toFixed(1)}%  ->  ${f}`);
+    if (r.diagText) console.log(r.diagText);
   } else {
     console.log(`silhueta ${id} vs ${refName}: máscara vazia (nada visível?)`);
   }
+}
+if (cmd === 'ronda') {
+  const [id] = idsArg;
+  if (!id) {
+    console.error('uso: node scripts/forja.mjs ronda <id>');
+    process.exit(1);
+  }
+  console.log(`=== RONDA AUTOMÁTICA: ${id} ===\n`);
+
+  console.log('[1/3] Auditoria (audit):');
+  const a = await page.evaluate((i) => window.__ST__.audit(i), id);
+  auditAll.push(a);
+  const errs = a.findings.filter((f) => f.level === 'error');
+  const warns = a.findings.filter((f) => f.level === 'warn');
+  const flag = errs.length ? '✗' : warns.length ? '△' : '✓';
+  console.log(`  ${flag} ${id.padEnd(16)} ${String(a.stats.tris).padStart(5)} tris · ${a.stats.materials} mat`);
+  if (a.findings.length) {
+    console.log(a.findings.map((f) => `      [${f.level}] ${f.check}: ${f.msg}`).join('\n'));
+  }
+
+  console.log('\n[2/3] Gerando folha de contato (shot):');
+  const shotUrl = await page.evaluate((i) => window.__ST__.contact(i), id);
+  const shotFile = join(OUT, `forja-${id}.png`);
+  writeFileSync(shotFile, Buffer.from(shotUrl.split(',')[1], 'base64'));
+  console.log(`  ✓ Foto gerada: ${shotFile}`);
+
+  console.log('\n[3/3] Checando referência de silhueta (sil):');
+  const refs = JSON.parse(readFileSync(join(ROOT, 'qa', 'ref', 'silhuetas.json'), 'utf8'));
+  const matchingRefs = Object.entries(refs).filter(([k]) => k !== '_' && (k === id || k.startsWith(id) || (id === 'jogador' && k.startsWith('pe'))));
+  if (matchingRefs.length === 0) {
+    console.log('  - Nenhuma referência cadastrada em qa/ref/silhuetas.json para este id.');
+  } else {
+    for (const [refName, ref] of matchingRefs) {
+      const r = await page.evaluate(([i, rf]) => window.__ST__.silScore(i, rf.poly, { hide: rf.hide ?? [], yaw: rf.yaw ?? Math.PI / 2, pitch: rf.pitch ?? 0.03 }), [id, ref]);
+      if (r.overlay) {
+        const silFile = join(OUT, `sil-${id}-${refName}.png`);
+        writeFileSync(silFile, Buffer.from(r.overlay.split(',')[1], 'base64'));
+        console.log(`  ✓ Silhueta vs ${refName}: IoU ${(r.iou * 100).toFixed(1)}% -> ${silFile}`);
+        if (r.diagText) console.log(r.diagText);
+      }
+    }
+  }
+
+  console.log(`\n=== FIM DA RONDA: ${id} ===`);
 }
 if (cmd === 'trace') {
   const [file, pts] = idsArg;

@@ -24,7 +24,8 @@ npm run forja -- audit              # audita tudo (exit 1 se error)
 npm run forja -- audit lobo         # só um objeto
 npm run forja -- shot lobo          # folha de contato -> qa/out/forja-lobo.png
 npm run forja -- part jogador torso # esconde o tronco (some cabeça/braços junto) -> forja-jogador-isolado.png
-npm run forja -- sil jogador pe-lado # nota de silhueta vs referência traçada de foto -> sil-jogador-pe-lado.png
+npm run forja -- sil jogador pe-lado # nota de silhueta + diagnóstico textual -> sil-jogador-pe-lado.png
+npm run forja -- ronda jogador      # CICLO COMPLETO: audit + shot + sil com diagnóstico textual
 npm run forja -- diff lobo          # compara qa/baseline/ vs qa/out/ (antes/depois)
 npm run forja -- all                # audita + fotografa tudo
 ```

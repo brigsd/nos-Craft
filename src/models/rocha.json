@@ -1,0 +1,19 @@
+{
+  "id": "rocha",
+  "kind": "veg",
+  "root": {
+    "name": "rock",
+    "type": "group",
+    "children": [
+      {
+        "type": "sphere",
+        "radius": 0.8,
+        "seg": [5, 4],
+        "scale": [1.1, 0.7, 1.1],
+        "rotation": [0.4, 0.8, 0.2],
+        "position": [0, 0.55, 0],
+        "color": "0x8f8b84"
+      }
+    ]
+  }
+}

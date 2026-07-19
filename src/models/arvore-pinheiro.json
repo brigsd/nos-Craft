@@ -1,0 +1,26 @@
+{
+  "id": "arvore-pinheiro",
+  "kind": "veg",
+  "root": {
+    "name": "pine",
+    "type": "group",
+    "children": [
+      {
+        "type": "loft",
+        "sections": [
+          { "p": [0, 0, 0], "rx": 0.22 },
+          { "p": [0.041, 0.92, 0.021], "rx": 0.172 },
+          { "p": [0.069, 1.725, 0.014], "rx": 0.121 },
+          { "p": [0.055, 2.3, 0], "rx": 0.12 }
+        ],
+        "seg": 6,
+        "capStart": false,
+        "capEnd": false,
+        "color": "0x5d4130"
+      },
+      { "type": "cone", "radius": 1.9, "height": 2.0, "seg": 7, "position": [0, 2.6, 0], "color": "0x2f6633" },
+      { "type": "cone", "radius": 1.4, "height": 2.0, "seg": 7, "position": [0, 3.85, 0], "color": "0x2f6633" },
+      { "type": "cone", "radius": 0.9, "height": 2.0, "seg": 7, "position": [0, 5.1, 0], "color": "0x2f6633" }
+    ]
+  }
+}

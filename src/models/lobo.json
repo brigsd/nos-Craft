@@ -1,0 +1,158 @@
+{
+  "id": "lobo",
+  "kind": "quad",
+  "scale": 0.82,
+  "root": {
+    "name": "body",
+    "type": "group",
+    "children": [
+      {
+        "type": "loft",
+        "sections": [
+          { "p": [0, 0.62, -0.58], "rx": 0.24, "rz": 0.28 },
+          { "p": [0, 0.66, -0.28], "rx": 0.32, "rz": 0.36 },
+          { "p": [0, 0.66, 0.1], "rx": 0.34, "rz": 0.38 },
+          { "p": [0, 0.62, 0.42], "rx": 0.28, "rz": 0.32 },
+          { "p": [0, 0.56, 0.62], "rx": 0.2, "rz": 0.24 }
+        ],
+        "seg": 8,
+        "countershade": { "dorsal": "0x8a8f96", "ventralMul": 0.6 }
+      },
+      {
+        "name": "head",
+        "type": "group",
+        "position": [0, 0.7, 0.6],
+        "children": [
+          {
+            "type": "loft",
+            "sections": [
+              { "p": [0, 0, -0.06], "rx": 0.19, "rz": 0.2 },
+              { "p": [0, 0.02, 0.08], "rx": 0.17, "rz": 0.18 },
+              { "p": [0, 0, 0.2], "rx": 0.1, "rz": 0.13 }
+            ],
+            "seg": 7,
+            "color": "0x8a8f96",
+            "colorOverrideKey": "dorsalColor"
+          },
+          { "type": "box", "size": [0.09, 0.12, 0.05], "position": [-0.1, 0.05, 0.16], "color": "0x14100e" },
+          { "type": "box", "size": [0.09, 0.12, 0.05], "position": [0.1, 0.05, 0.16], "color": "0x14100e" },
+          {
+            "type": "loft",
+            "sections": [
+              { "p": [0, -0.01, 0.16], "rx": 0.1, "rz": 0.11 },
+              { "p": [0, -0.03, 0.34], "rx": 0.06, "rz": 0.07 },
+              { "p": [0, -0.03, 0.4], "rx": 0.04, "rz": 0.045 }
+            ],
+            "seg": 6,
+            "color": "0x8a8f96",
+            "colorOverrideKey": "dorsalColor"
+          },
+          { "type": "sphere", "radius": 0.035, "seg": [6, 5], "position": [0, -0.03, 0.44], "color": "0x18120e" },
+          { "type": "cone", "radius": 0.065, "height": 0.19, "seg": 4, "position": [-0.12, 0.2, -0.02], "rotation": [0, 0, -0.15], "color": "0x8a8f96", "colorOverrideKey": "dorsalColor" },
+          { "type": "cone", "radius": 0.065, "height": 0.19, "seg": 4, "position": [0.12, 0.2, -0.02], "rotation": [0, 0, 0.15], "color": "0x8a8f96", "colorOverrideKey": "dorsalColor" }
+        ]
+      },
+      {
+        "name": "tail",
+        "type": "group",
+        "children": [
+          {
+            "type": "loft",
+            "sections": [
+              { "p": [0, 0.68, -0.58], "rx": 0.09 },
+              { "p": [0, 0.6, -0.86], "rx": 0.06 },
+              { "p": [0, 0.48, -1.06], "rx": 0.032 }
+            ],
+            "seg": 6,
+            "color": "0x8a8f96",
+            "colorOverrideKey": "dorsalColor"
+          }
+        ]
+      },
+      {
+        "name": "legRF",
+        "type": "group",
+        "position": [0.22, 0.64, 0.42],
+        "children": [
+          {
+            "type": "loft",
+            "sections": [
+              { "p": [0, 0.08, 0], "rx": 0.15, "rz": 0.17 },
+              { "p": [0, -0.08, 0], "rx": 0.13, "rz": 0.15 },
+              { "p": [0.02, -0.28, 0.03], "rx": 0.095 },
+              { "p": [0.01, -0.48, 0], "rx": 0.06 },
+              { "p": [0, -0.56, 0.02], "rx": 0.055 }
+            ],
+            "seg": 6,
+            "color": "0x8a8f96",
+            "colorOverrideKey": "dorsalColor"
+          },
+          { "type": "cylinder", "radiusTop": 0.058, "radiusBottom": 0.05, "height": 0.09, "seg": 6, "position": [0, -0.5, 0], "color": "0x2c2824" }
+        ]
+      },
+      {
+        "name": "legLF",
+        "type": "group",
+        "position": [-0.22, 0.64, 0.42],
+        "children": [
+          {
+            "type": "loft",
+            "sections": [
+              { "p": [0, 0.08, 0], "rx": 0.15, "rz": 0.17 },
+              { "p": [0, -0.08, 0], "rx": 0.13, "rz": 0.15 },
+              { "p": [-0.02, -0.28, 0.03], "rx": 0.095 },
+              { "p": [-0.01, -0.48, 0], "rx": 0.06 },
+              { "p": [0, -0.56, 0.02], "rx": 0.055 }
+            ],
+            "seg": 6,
+            "color": "0x8a8f96",
+            "colorOverrideKey": "dorsalColor"
+          },
+          { "type": "cylinder", "radiusTop": 0.058, "radiusBottom": 0.05, "height": 0.09, "seg": 6, "position": [0, -0.5, 0], "color": "0x2c2824" }
+        ]
+      },
+      {
+        "name": "legRB",
+        "type": "group",
+        "position": [0.22, 0.64, -0.42],
+        "children": [
+          {
+            "type": "loft",
+            "sections": [
+              { "p": [0, 0.08, 0], "rx": 0.15, "rz": 0.17 },
+              { "p": [0, -0.08, 0], "rx": 0.13, "rz": 0.15 },
+              { "p": [0.02, -0.28, -0.03], "rx": 0.095 },
+              { "p": [0.01, -0.48, 0], "rx": 0.06 },
+              { "p": [0, -0.56, 0.02], "rx": 0.055 }
+            ],
+            "seg": 6,
+            "color": "0x8a8f96",
+            "colorOverrideKey": "dorsalColor"
+          },
+          { "type": "cylinder", "radiusTop": 0.058, "radiusBottom": 0.05, "height": 0.09, "seg": 6, "position": [0, -0.5, 0], "color": "0x2c2824" }
+        ]
+      },
+      {
+        "name": "legLB",
+        "type": "group",
+        "position": [-0.22, 0.64, -0.42],
+        "children": [
+          {
+            "type": "loft",
+            "sections": [
+              { "p": [0, 0.08, 0], "rx": 0.15, "rz": 0.17 },
+              { "p": [0, -0.08, 0], "rx": 0.13, "rz": 0.15 },
+              { "p": [-0.02, -0.28, -0.03], "rx": 0.095 },
+              { "p": [-0.01, -0.48, 0], "rx": 0.06 },
+              { "p": [0, -0.56, 0.02], "rx": 0.055 }
+            ],
+            "seg": 6,
+            "color": "0x8a8f96",
+            "colorOverrideKey": "dorsalColor"
+          },
+          { "type": "cylinder", "radiusTop": 0.058, "radiusBottom": 0.05, "height": 0.09, "seg": 6, "position": [0, -0.5, 0], "color": "0x2c2824" }
+        ]
+      }
+    ]
+  }
+}

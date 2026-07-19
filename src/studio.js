@@ -326,13 +326,50 @@ export async function silScore(id, refPoly, { hide: hideNames = [], yaw: sy = Ma
   const objPx = og.getImageData(0, 0, N, MH).data;
 
   let inter = 0, uni = 0;
+  const regions = {
+    'topo-esq': { extra: 0, missing: 0, ref: 0 },
+    'topo-dir': { extra: 0, missing: 0, ref: 0 },
+    'meio-esq': { extra: 0, missing: 0, ref: 0 },
+    'meio-dir': { extra: 0, missing: 0, ref: 0 },
+    'base-esq': { extra: 0, missing: 0, ref: 0 },
+    'base-dir': { extra: 0, missing: 0, ref: 0 },
+  };
+
   for (let i = 0; i < N * MH; i++) {
     const a = refPx[i * 4] > 127 ? 1 : 0;
     const b = Math.abs(objPx[i * 4] - bgr) + Math.abs(objPx[i * 4 + 1] - bgg) + Math.abs(objPx[i * 4 + 2] - bgb) > 28 ? 1 : 0;
     if (a && b) inter++;
     if (a || b) uni++;
+
+    const x = i % N;
+    const y = (i / N) | 0;
+    const rY = y < MH / 3 ? 'topo' : y < (2 * MH) / 3 ? 'meio' : 'base';
+    const rX = x < N / 2 ? 'esq' : 'dir';
+    const regKey = `${rY}-${rX}`;
+
+    if (a) regions[regKey].ref++;
+    if (b && !a) regions[regKey].extra++;
+    if (a && !b) regions[regKey].missing++;
   }
   const iou = uni ? inter / uni : 0;
+
+  const feedback = [];
+  const totalRef = Object.values(regions).reduce((acc, r) => acc + r.ref, 0) || 1;
+
+  const ratioDiff = Math.round(((objH - refH) / refH) * 100);
+  if (Math.abs(ratioDiff) >= 3) {
+    if (ratioDiff > 0) feedback.push(`  ! proporção: ${ratioDiff}% mais alto/fino que a referência`);
+    else feedback.push(`  ! proporção: ${Math.abs(ratioDiff)}% mais baixo/largo que a referência`);
+  }
+
+  for (const [key, r] of Object.entries(regions)) {
+    const extraPct = Math.round((r.extra / totalRef) * 100);
+    const missingPct = Math.round((r.missing / totalRef) * 100);
+    if (extraPct >= 2) feedback.push(`  + sobra material em ${key} (+${extraPct}%)`);
+    if (missingPct >= 2) feedback.push(`  - falta material em ${key} (-${missingPct}%)`);
+  }
+
+  const diagText = feedback.length ? feedback.join('\n') : '  ✓ forma e proporção muito alinhadas com a referência';
 
   // ---- overlay: recorte do render + contorno da ref por cima (2x) ----
   const ov = document.createElement('canvas'); ov.width = N * 2; ov.height = MH * 2;
@@ -350,7 +387,7 @@ export async function silScore(id, refPoly, { hide: hideNames = [], yaw: sy = Ma
   vg.closePath(); vg.stroke();
   vg.fillStyle = '#f0c95c'; vg.font = '20px Georgia';
   vg.fillText(`IoU ${(iou * 100).toFixed(1)}%`, 10, 26);
-  return { iou, overlay: ov.toDataURL('image/png') };
+  return { iou, overlay: ov.toDataURL('image/png'), diagText, regions };
 }
 
 /**
