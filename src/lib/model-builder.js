@@ -103,7 +103,17 @@ function buildNode(node, parts = {}, overrides = {}) {
     if (node.clampBelow !== undefined) clampBelow(geo, node.clampBelow);
     mesh = new THREE.Mesh(geo, VC());
   } else if (node.type === 'sphere') {
-    const geo = new THREE.SphereGeometry(node.radius ?? 0.5, ...(node.seg ?? [8, 6]));
+    const wSeg = node.seg ? node.seg[0] : 8;
+    const hSeg = node.seg ? node.seg[1] : 6;
+    const geo = new THREE.SphereGeometry(
+      node.radius ?? 0.5,
+      wSeg,
+      hSeg,
+      node.phiStart ?? 0,
+      node.phiLength ?? Math.PI * 2,
+      node.thetaStart ?? 0,
+      node.thetaLength ?? Math.PI
+    );
     mesh = new THREE.Mesh(geo, M(colVal));
   } else if (node.type === 'box') {
     const size = node.size ?? [1, 1, 1];
