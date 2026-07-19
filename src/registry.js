@@ -10,7 +10,7 @@ import jogadorData from './models/jogador.json' with { type: 'json' };
 import rochaData from './models/rocha.json' with { type: 'json' };
 import carvalhoData from './models/arvore-carvalho.json' with { type: 'json' };
 import pinheiroData from './models/arvore-pinheiro.json' with { type: 'json' };
-import cogumeloData from './models/cogumelo.json' with { type: 'json' };
+import cogumeloData from './models/approved/cogumelo.json' with { type: 'json' };
 import { MOB_TYPES, NPCS } from './data.js';
 
 // orçamentos de triângulos por categoria (o crítico cobra)
