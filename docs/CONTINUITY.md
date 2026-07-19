@@ -31,7 +31,7 @@
 - **8** — silhueta-primeiro + nota objetiva (`forja sil`, IoU vs referência).
 - **9** — multi-vista (`fromViews` 1/2/3 vistas) + traçador de desenho
   (`forja trace`, canal do ideador) + skill `.claude/skills/silhueta/`.
-- **10** — **Diagnóstico textual de silhueta** (`forja sil` aponta região e % de sobra/falta de material e desvio de proporção) + **`forja ronda <id>`** (comando único que executa audit, shot e sil em sequência) + **Objetos-como-dados** (interpretador `src/lib/model-builder.js` e modelos JSON declarativos em `src/models/*.json` para todas as criaturas e vegetação; 23/23 objetos auditados e verdes).
+- **10** — **Diagnóstico textual de silhueta** (`forja sil` aponta região e % de sobra/falta de material e desvio de proporção) + **`forja ronda <id>`** (comando único que executa audit, shot e sil em sequência) + **Objetos-como-dados** (interpretador `src/lib/model-builder.js` e modelos JSON declarativos em `src/models/*.json` para todas as criaturas e vegetação; 23/23 objetos auditados e verdes) + **Documento de Troubleshooting de Modelagem** ([docs/TROUBLESHOOTING.md](file:///c:/Users/tiago/Desktop/N%C3%B3s-craft/docs/TROUBLESHOOTING.md) registrando a correção do bug de normais/tampas do `loft.js` e Z-fighting).
 
 ## Próximos passos (candidatos, não obrigações)
 1. **Estrear o canal de desenho do ideador**: ele desenha uma vista, `forja trace` converte, `fromViews` infla — refazer uma parte a partir do desenho dele de ponta a ponta.

@@ -70,8 +70,8 @@ export function loft(sections, { seg = 8, caps = true, capStart, capEnd, capSmoo
       pos.push(c.x, c.y, c.z);
       const base = i0 === 0 ? 0 : (n - 1) * seg;
       for (let j = 0; j < seg; j++) {
-        if (flip > 0) idx.push(ci, base + j, base + ((j + 1) % seg));
-        else idx.push(ci, (j + 1) % seg, j);
+        if (flip > 0) idx.push(ci, base + ((j + 1) % seg), base + j);
+        else idx.push(ci, j, (j + 1) % seg);
       }
     };
     /* pontas SEM tampa (capStart/capEnd:false) são de propósito: a seção
