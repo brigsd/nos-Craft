@@ -95,6 +95,21 @@ export function loft(sections, { seg = 8, caps = true, capStart, capEnd, capSmoo
   return geo;
 }
 
+/**
+ * Achata tudo abaixo de minY na altura da sola e refaz as normais.
+ * Pra pé/casco/base: o loft é sempre um tubo de seção elíptica — por baixo
+ * ele arredonda, e sola arredondada lia como "sabonete" (Forja ronda 7,
+ * achado do ideador com foto de referência). Clampar os vértices de baixo
+ * dá o plano de apoio que um pé de verdade tem, mantendo o dorso curvo.
+ */
+export function clampBelow(geo, minY) {
+  const p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) if (p.getY(i) < minY) p.setY(i, minY);
+  p.needsUpdate = true;
+  geo.computeVertexNormals();
+  return geo;
+}
+
 /** membro: tubo afilado com "cotovelo" — espinha em 3 pontos + raios que afinam */
 export function limb(from, mid, to, r0, r1, r2, seg = 7) {
   return loft([

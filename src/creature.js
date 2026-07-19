@@ -4,7 +4,8 @@
 // biped: pelve→tronco→cabeça, braços com arma; quad: corpo+4 patas+cauda.
 // api: makeBiped/makeQuad -> { group, parts, anim(state, t, dt) }
 import * as THREE from 'three';
-import { loft, countershade } from './lib/loft.js';
+import { loft, countershade, clampBelow } from './lib/loft.js';
+import { chamferBox } from './lib/geo.js';
 
 /* materiais memoizados (Forja ronda 1: 15 draw calls por boneco) */
 const _mc = new Map();
@@ -135,31 +136,45 @@ export function makeBiped({ tint = 0x9a7a5a, skin = 0xd8b090, gnoll = false, sca
       { p: [0, -0.40, -0.005], rx: 0.082, rz: 0.078 },
       { p: [0, -0.46, -0.01], rx: 0.072, rz: 0.07 },  // joelho — SEM tampa, encosta na canela
     ], { seg: 8, capStart: false, capEnd: false, color: 0x4a3c30 });
-    leg.add(new THREE.Mesh(thighGeo, VC()));
+    const thighMesh = new THREE.Mesh(thighGeo, VC()); thighMesh.name = s === 1 ? 'coxaR' : 'coxaL';
+    leg.add(thighMesh);
     const shin = new THREE.Group(); shin.name = s === 1 ? 'shinR' : 'shinL'; shin.position.y = -0.46; leg.add(shin);
     const shinGeo = loft([
       { p: [0, 0.03, -0.01], rx: 0.078, rz: 0.075 },  // topo — encosta na coxa, SEM tampa
       { p: [0, -0.08, -0.03], rx: 0.09, rz: 0.088 },  // batata da perna (gastrocnêmio, puxa pra trás)
       { p: [0, -0.26, 0], rx: 0.062, rz: 0.058 },
-      { p: [0, -0.42, 0.02], rx: 0.042, rz: 0.04 },   // tornozelo — SEM tampa, o pé cobre
+      { p: [0, -0.50, 0.02], rx: 0.042, rz: 0.04 },   // tornozelo — SEM tampa, o pé cobre
     ], { seg: 8, capStart: false, capEnd: false, color: 0x3a3028 });
-    shin.add(new THREE.Mesh(shinGeo, VC()));
-    // pé descalço (sem bota): peito do pé achatado + fileira de dedos
+    const calfMesh = new THREE.Mesh(shinGeo, VC()); calfMesh.name = s === 1 ? 'canelaR' : 'canelaL';
+    shin.add(calfMesh);
+    /* pé descalço em L (Forja ronda 7, iteração 3 — insight do ideador com
+       foto de referência: "em linhas gerais o pé é um L"). As tentativas
+       anteriores falharam por montagem: loft-tubo diagonal lia como cone;
+       caixas soltas (calcanhar+corpo+bolinhas) liam como sabonete. Agora é
+       UMA malha contínua cuja ESPINHA segue o L de verdade — desce pelo
+       tornozelo, bolha do calcanhar atrás, dobra pra frente, achata até a
+       base dos dedos — e a sola é achatada com clampBelow (loft.js, novo:
+       tubo elíptico arredonda por baixo; sola de verdade é plana). */
+    const pe = new THREE.Group(); pe.name = s === 1 ? 'peR' : 'peL'; shin.add(pe);
     const footGeo = loft([
-      { p: [0, -0.42, 0.02], rx: 0.045, rz: 0.05 },   // tornozelo — SEM tampa, encosta na canela
-      { p: [0, -0.50, 0.09], rx: 0.06, rz: 0.09 },    // peito do pé, desce e alarga
-      { p: [0, -0.52, 0.21], rx: 0.065, rz: 0.11 },   // meio do pé, achatado
-      { p: [0, -0.51, 0.30], rx: 0.05, rz: 0.09 },    // base dos dedos
+      { p: [0, -0.40, 0.005], rx: 0.044, rz: 0.048 },  // tornozelo (some na canela, SEM tampa)
+      { p: [0, -0.50, -0.02], rx: 0.05, rz: 0.056 },   // calcanhar — projeta pra TRÁS
+      { p: [0, -0.545, 0.05], rx: 0.052, rz: 0.036 },  // a dobra do L: vira pra frente
+      { p: [0, -0.556, 0.14], rx: 0.058, rz: 0.027 },  // meio do pé, achatando
+      { p: [0, -0.558, 0.225], rx: 0.061, rz: 0.021 }, // base dos dedos, largo e baixo
     ], { seg: 8, capStart: false, capEnd: true, color: 0xd8b090 });
-    shin.add(new THREE.Mesh(footGeo, VC()));
+    clampBelow(footGeo, -0.572); // sola plana no chão
+    pe.add(new THREE.Mesh(footGeo, VC()));
+    // dedos: bossas na frente, meio afundadas no corpo do pé — separam a
+    // silhueta (ref. 2 do ideador) sem virar bolinhas soltas
     const toeMat = M(0xd8b090);
     for (let i = 0; i < 4; i++) {
       const t = i / 3; // 0 = dedão, 1 = mindinho
-      const tr = 0.026 - t * 0.013;
-      const toe = new THREE.Mesh(new THREE.SphereGeometry(tr, 6, 5), toeMat);
-      toe.scale.set(1, 0.62, 1.1);
-      toe.position.set(-0.045 + t * 0.09, -0.508, 0.335 + t * 0.008);
-      shin.add(toe);
+      const tr = 0.028 - t * 0.013;
+      const toe = new THREE.Mesh(new THREE.SphereGeometry(tr, 7, 5), toeMat);
+      toe.scale.set(1, 0.72, 1.3);
+      toe.position.set(-0.038 + t * 0.078, -0.556, 0.248 + t * 0.004);
+      pe.add(toe);
     }
     parts[s === 1 ? 'legR' : 'legL'] = leg;
     parts[s === 1 ? 'shinR' : 'shinL'] = shin;
