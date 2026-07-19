@@ -13,6 +13,11 @@
 //                                             polígono traçado de foto real e
 //                                             grava o overlay. O "está realmente
 //                                             bom?" vira número.
+//   node scripts/forja.mjs trace <img> [pts]  TRAÇADOR: desenho (contorno fechado
+//                                             ou forma preenchida, traço escuro em
+//                                             fundo claro) vira polígono y-pra-cima
+//                                             pronto pra fromViews()/silhuetas.json.
+//                                             É assim que desenho do ideador entra.
 // Saída: qa/out/forja-<id>.png + qa/out/forja-audit.json
 import { createServer } from 'node:http';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
@@ -82,6 +87,20 @@ if (cmd === 'sil') {
   } else {
     console.log(`silhueta ${id} vs ${refName}: máscara vazia (nada visível?)`);
   }
+}
+if (cmd === 'trace') {
+  const [file, pts] = idsArg;
+  if (!file || !existsSync(file)) {
+    console.error('uso: node scripts/forja.mjs trace <imagem.png|jpg> [maxPontos]');
+    process.exit(1);
+  }
+  const ext = extname(file).toLowerCase();
+  const mime = ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png';
+  const dataURL = `data:${mime};base64,${readFileSync(file).toString('base64')}`;
+  const poly = await page.evaluate(([d, n]) => window.__ST__.trace(d, { maxPontos: n }), [dataURL, Number(pts) || 18]);
+  if (!poly) { console.error('trace: nenhuma forma encontrada (o traço fecha? o fundo é claro?)'); process.exit(1); }
+  console.log(`${poly.length} pontos (y pra cima, unidades em pixel — normalize ao usar):`);
+  console.log(JSON.stringify(poly));
 }
 if (cmd === 'part') {
   const [id, namesArg] = idsArg;

@@ -133,8 +133,33 @@ num achado de anatomia (em vez de só o índice numérico).
    nota de feedback (58%→90% com régua frouxa; 77%→87.7% com régua
    honesta), coisa que na ronda 7 eram chutes cegos de coordenadas.
 
+9. **Multi-vista + traçador + skill (formalização)** — pedido do ideador:
+   ele quer PARTICIPAR desenhando vistas. (a) `fromViews({lado, cima,
+   frente?})` — a IA escolhe quantas vistas o objeto precisa (1 = lathe;
+   2 = o comum; 3 = a frontal RECORTA cada seção, visual hull de model
+   sheet); concavidade dentro de uma vista = compor massas, um fromViews
+   por massa. (b) `forja trace <img>` — desenho de contorno fechado (ou
+   forma preenchida) em fundo claro vira polígono automaticamente
+   (binariza → flood-fill fecha o miolo → maior componente → contorno
+   Moore → Douglas-Peucker). Validado ponta-a-ponta: a ref pe-lado
+   desenhada como traço de caneta voltou com 17 pontos e proporções
+   certas. O MESMO desenho serve de perfil de entrada E de régua do sil.
+   (c) Tudo virou skill: `.claude/skills/silhueta/SKILL.md` — qualquer
+   sessão futura carrega o fluxo completo com as armadilhas documentadas.
+
 Cada ronda: **audite, olhe a folha de contato de verdade, aponte o defeito
 concreto antes de aprovar, corrija, re-audite.** Não se dê por satisfeito.
 E antes de concluir qualquer ronda visual: **"está REALMENTE bom?"** —
 rode `forja sil` se houver referência, e se não houver, trace uma
 (qa/ref/silhuetas.json, ~10-16 pontos olhando uma foto real).
+
+## Como o ideador participa desenhando
+
+1. Desenhe UMA vista por imagem: contorno fechado, traço escuro, fundo
+   claro (papel fotografado serve). Diga qual objeto e qual vista é
+   ("lado do lobo", "frente da casa").
+2. O coder roda `npm run forja -- trace <img>` → polígono.
+3. O polígono vira perfil de entrada do `fromViews()` E referência em
+   `qa/ref/silhuetas.json` — a malha nasce do seu desenho e é medida
+   contra ele. Vista que você não desenhar, o coder desenha (e diz que
+   foi ele, pra você poder corrigir).

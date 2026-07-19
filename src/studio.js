@@ -353,8 +353,107 @@ export async function silScore(id, refPoly, { hide: hideNames = [], yaw: sy = Ma
   return { iou, overlay: ov.toDataURL('image/png') };
 }
 
+/**
+ * TRAÇADOR (ronda 9) — desenho vira polígono automaticamente, pro ideador
+ * poder participar DESENHANDO vistas. Recebe uma imagem (dataURL): traço
+ * escuro FECHADO (ou forma preenchida) sobre fundo claro. Pipeline:
+ * binariza por luminância -> flood-fill das bordas marca o LADO DE FORA
+ * (então o miolo de um contorno fechado conta como dentro) -> maior
+ * componente -> contorno por Moore-neighbor -> simplifica (Douglas-Peucker)
+ * até ~maxPontos. Devolve polígono y-PRA-CIMA pronto pra fromViews/refs.
+ */
+export async function trace(dataURL, { maxPontos = 18, limiar = 150 } = {}) {
+  const img = new Image();
+  img.src = dataURL;
+  await new Promise((ok, err) => { img.onload = ok; img.onerror = err; });
+  const W = Math.min(img.width, 640);
+  const H = Math.round(img.height * (W / img.width));
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const g = cv.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); // achata transparência pra claro
+  g.drawImage(img, 0, 0, W, H);
+  const px = g.getImageData(0, 0, W, H).data;
+  const dark = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) {
+    const lum = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
+    dark[i] = lum < limiar ? 1 : 0;
+  }
+  // fora = claro alcançável da borda; dentro = todo o resto (fecha contornos)
+  const out = new Uint8Array(W * H);
+  const stack = [];
+  for (let x = 0; x < W; x++) { stack.push(x, (H - 1) * W + x); }
+  for (let y = 0; y < H; y++) { stack.push(y * W, y * W + W - 1); }
+  while (stack.length) {
+    const i = stack.pop();
+    if (out[i] || dark[i]) continue;
+    out[i] = 1;
+    const x = i % W, y = (i / W) | 0;
+    if (x > 0) stack.push(i - 1);
+    if (x < W - 1) stack.push(i + 1);
+    if (y > 0) stack.push(i - W);
+    if (y < H - 1) stack.push(i + W);
+  }
+  const solid = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) solid[i] = out[i] ? 0 : 1;
+  // maior componente sólida (ignora sujeirinhas)
+  const comp = new Int32Array(W * H).fill(-1);
+  let best = -1, bestN = 0, nComp = 0;
+  for (let i0 = 0; i0 < W * H; i0++) {
+    if (!solid[i0] || comp[i0] >= 0) continue;
+    let n = 0; const st = [i0]; comp[i0] = nComp;
+    while (st.length) {
+      const i = st.pop(); n++;
+      const x = i % W, y = (i / W) | 0;
+      for (const j of [i - 1, i + 1, i - W, i + W]) {
+        if (j < 0 || j >= W * H) continue;
+        const jx = j % W; if (Math.abs(jx - x) > 1) continue;
+        if (solid[j] && comp[j] < 0) { comp[j] = nComp; st.push(j); }
+      }
+    }
+    if (n > bestN) { bestN = n; best = nComp; }
+    nComp++;
+  }
+  const isIn = (x, y) => x >= 0 && x < W && y >= 0 && y < H && comp[y * W + x] === best;
+  // contorno Moore-neighbor a partir do primeiro pixel da componente
+  let sx = -1, sy = -1;
+  outer: for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (isIn(x, y)) { sx = x; sy = y; break outer; }
+  if (sx < 0) return null;
+  const DIRS = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
+  const path = [[sx, sy]];
+  let cx = sx, cy = sy, dir = 7;
+  for (let step = 0; step < W * H * 4; step++) {
+    let found = false;
+    for (let k = 0; k < 8; k++) {
+      const d = (dir + 6 + k) % 8; // vira à esquerda primeiro (segue a borda)
+      const nx = cx + DIRS[d][0], ny = cy + DIRS[d][1];
+      if (isIn(nx, ny)) { cx = nx; cy = ny; dir = d; found = true; break; }
+    }
+    if (!found) break;
+    if (cx === sx && cy === sy) break;
+    path.push([cx, cy]);
+  }
+  // Douglas-Peucker até caber em maxPontos
+  const dp = (pts, eps) => {
+    if (pts.length < 3) return pts;
+    const [x0, y0] = pts[0], [x1, y1] = pts[pts.length - 1];
+    let iMax = 0, dMax = 0;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const [x, y] = pts[i];
+      const d = Math.abs((y1 - y0) * x - (x1 - x0) * y + x1 * y0 - y1 * x0) / (Math.hypot(x1 - x0, y1 - y0) || 1);
+      if (d > dMax) { dMax = d; iMax = i; }
+    }
+    if (dMax < eps) return [pts[0], pts[pts.length - 1]];
+    const a = dp(pts.slice(0, iMax + 1), eps), b = dp(pts.slice(iMax), eps);
+    return a.slice(0, -1).concat(b);
+  };
+  let eps = 1, poly = path;
+  for (let k = 0; k < 24 && poly.length > maxPontos; k++) { poly = dp(path, eps); eps *= 1.4; }
+  // y pra cima + arredonda
+  return poly.map(([x, y]) => [Math.round(x), Math.round(H - 1 - y)]);
+}
+
 window.__ST__ = {
-  show, audit, contact, hide, silScore,
+  show, audit, contact, hide, silScore, trace,
   angle: (y, p, d) => { yaw = y; pitch = p; if (d) dist = d; spin = false; },
   list: () => REGISTRY.map((r) => r.id),
 };

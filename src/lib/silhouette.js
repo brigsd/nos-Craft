@@ -32,8 +32,19 @@ function rangeAt(outline, z) {
   return [Math.min(...hits), Math.max(...hits)];
 }
 
+/** ponto dentro do polígono? (ray casting) */
+function inside(poly, x, y) {
+  let ok = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) ok = !ok;
+  }
+  return ok;
+}
+
 export function inflate(sideOutline, topOutline, {
   stations = 14, seg = 10, squareTop = 2.2, squareBottom = 4.5, color = null,
+  front = null, // 3ª vista opcional (x×y): recorta cada seção pelo envelope frontal
 } = {}) {
   const zs = sideOutline.map((p) => p[0]);
   const zMin = Math.min(...zs), zMax = Math.max(...zs);
@@ -55,8 +66,19 @@ export function inflate(sideOutline, topOutline, {
       const th = (j / seg) * Math.PI * 2;
       const c = Math.cos(th), s = Math.sin(th);
       const n = s > 0 ? squareTop : squareBottom; // metade de cima / de baixo
-      const px = cx + rx * Math.sign(c) * Math.abs(c) ** (2 / n);
-      const py = cy + ry * Math.sign(s) * Math.abs(s) ** (2 / n);
+      let px = cx + rx * Math.sign(c) * Math.abs(c) ** (2 / n);
+      let py = cy + ry * Math.sign(s) * Math.abs(s) ** (2 / n);
+      /* 3ª vista: se o vértice sai do envelope frontal, puxa em direção ao
+         centro da seção até a borda (busca binária) — o "visual hull" de
+         ficha de model sheet: cada vista só pode TIRAR material */
+      if (front && inside(front, cx, cy) && !inside(front, px, py)) {
+        let lo = 0, hi = 1;
+        for (let k = 0; k < 12; k++) {
+          const t = (lo + hi) / 2;
+          if (inside(front, cx + (px - cx) * t, cy + (py - cy) * t)) lo = t; else hi = t;
+        }
+        px = cx + (px - cx) * lo; py = cy + (py - cy) * lo;
+      }
       ring.push([px, py, z]);
     }
     rings.push({ ring, cx, cy, z });
@@ -93,4 +115,26 @@ export function inflate(sideOutline, topOutline, {
     geo.setAttribute('color', new THREE.BufferAttribute(cols, 3));
   }
   return geo;
+}
+
+/**
+ * Porta de entrada por Nº DE VISTAS — a IA (ou o ideador desenhando)
+ * escolhe quantas vistas o objeto precisa:
+ *
+ *   1 vista  -> objeto de revolução (pote, poço, torre): use lathe() de
+ *               lib/geo.js — o perfil gira em torno do eixo.
+ *   2 vistas -> lado (z×y) + cima (z×x): o caso comum. Seções superelipse.
+ *   3 vistas -> + frente (x×y): o envelope frontal RECORTA cada seção
+ *               (visual hull) — pra formas que as 2 vistas não fecham
+ *               (ex.: corpo que afina de frente mas não de lado).
+ *
+ * Objetos com concavidade DENTRO de uma vista (buraco, arco, vão entre
+ * pernas) não saem de um inflate só: componha MASSAS — um fromViews por
+ * massa (tronco, perna, braço...), como uma model sheet real.
+ */
+export function fromViews({ lado, cima, frente = null }, opts = {}) {
+  if (!lado || !cima) {
+    throw new Error('fromViews: precisa de lado (z×y) e cima (z×x). Pra 1 vista (revolução), use lathe() de lib/geo.js.');
+  }
+  return inflate(lado, cima, { ...opts, front: frente });
 }
