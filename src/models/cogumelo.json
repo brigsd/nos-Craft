@@ -24,11 +24,16 @@
         "name": "cap",
         "type": "sphere",
         "radius": 0.6,
-        "seg": [10, 8],
+        "seg": [16, 12],
         "thetaLength": 1.5708,
         "scale": [1.1, 0.75, 1.1],
         "position": [0, 0.72, 0],
-        "color": "0xb85c3a"
+        "texture": {
+          "type": "dots",
+          "bg": "0xc83a2a",
+          "dot": "0xffffff",
+          "seed": 4
+        }
       }
     ]
   }

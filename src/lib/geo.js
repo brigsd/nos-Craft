@@ -232,6 +232,33 @@ export function texCloth(fam = 'couro', seed = 4) {
     }
   }, [2, 2]);
 }
+/** textura de pintas/bolinhas (para cogumelos e padrões) */
+export function texDots(bg = '#c83a2a', dot = '#ffffff', seed = 1) {
+  return makeTex(`dots${bg}${dot}${seed}`, 256, 256, (g, w, h) => {
+    g.fillStyle = bg;
+    g.fillRect(0, 0, w, h);
+    g.fillStyle = dot;
+
+    // 6 manchas onde a mancha inferior direita (longe do topo) é a MAIOR de todas, em tamanho equilibrado
+    const spots = [
+      { x: w * 0.50, y: h * 0.22, rx: 11, ry: 27 }, // topo central (MÉDIA/GRANDE)
+      { x: w * 0.15, y: h * 0.55, rx: 7,  ry: 18 }, // meia-altura esq (MÉDIA)
+      { x: w * 0.85, y: h * 0.52, rx: 9,  ry: 23 }, // meia-altura dir (MÉDIA)
+      { x: w * 0.48, y: h * 0.68, rx: 6,  ry: 16 }, // centro inferior (PEQUENA)
+      { x: w * 0.32, y: h * 0.42, rx: 8,  ry: 20 }, // intermediária esq-alto (MÉDIA)
+      { x: w * 0.68, y: h * 0.78, rx: 15, ry: 37 }, // inferior dir (A MAIOR DE TODAS)
+    ];
+
+    for (const s of spots) {
+      g.beginPath();
+      g.ellipse(s.x, s.y, s.rx, s.ry, 0, 0, Math.PI * 2);
+      g.fill();
+      // wrapping suave nas bordas horizontais
+      if (s.x - s.rx < 0) { g.beginPath(); g.ellipse(s.x + w, s.y, s.rx, s.ry, 0, 0, Math.PI * 2); g.fill(); }
+      if (s.x + s.rx > w) { g.beginPath(); g.ellipse(s.x - w, s.y, s.rx, s.ry, 0, 0, Math.PI * 2); g.fill(); }
+    }
+  }, [1, 1]);
+}
 /** material texturizado (sem vertex color — a textura manda) */
 export function texMat(tex, opts = {}) {
   return new THREE.MeshLambertMaterial({ map: tex, ...opts });

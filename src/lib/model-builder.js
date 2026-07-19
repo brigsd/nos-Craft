@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { loft, countershade, clampBelow } from './loft.js';
 import { inflate } from './silhouette.js';
+import { texDots, texMat } from './geo.js';
 
 const _matCache = new Map();
 export const M = (color, opts = {}) => {
@@ -128,6 +129,14 @@ function buildNode(node, parts = {}, overrides = {}) {
   }
 
   if (mesh) {
+    if (node.texture) {
+      const bgHex = typeof node.texture.bg === 'string' && node.texture.bg.startsWith('0x') ? '#' + node.texture.bg.slice(2) : (node.texture.bg ?? '#b85c3a');
+      const dotHex = typeof node.texture.dot === 'string' && node.texture.dot.startsWith('0x') ? '#' + node.texture.dot.slice(2) : (node.texture.dot ?? '#eee7d0');
+      if (node.texture.type === 'dots') {
+        const tex = texDots(bgHex, dotHex, node.texture.seed ?? 1);
+        mesh.material = texMat(tex);
+      }
+    }
     if (node.meshName) mesh.name = node.meshName;
     else if (node.name) mesh.name = node.name + '_mesh';
     if (mesh.name) parts[mesh.name] = mesh;
