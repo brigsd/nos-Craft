@@ -66,3 +66,7 @@ Fluxo de criação silhueta-primeiro: **[`.claude/skills/silhueta/SKILL.md`](.cl
 - Toda mudança visual passa pela Forja (crítico verde) antes de entrar no mundo.
 
 Convenções para quem desenvolve aqui (humano ou IA): **[`CLAUDE.md`](CLAUDE.md)**.
+
+## Licença
+
+Este projeto é [MIT](LICENSE) — use, copie e modifique à vontade. Se ele te ajudar em algo público, um crédito ao NÓS é bem-vindo.
